@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Background */
+  --color-bg-primary: #0D0C12;
+  --color-bg-surface: #15141C;
+  --color-bg-surface-2: #1E1D28;
+  --color-bg-hover: #242330;
+
+  /* Primary (violet) */
+  --color-primary-50: #E4DFF0;
+  --color-primary-100: #C8BFE0;
+  --color-primary-200: #A593CF;
+  --color-primary-400: #7C6BB5;
+  --color-primary-600: #5B4D8A;
+  --color-primary-800: #3A3160;
+
+  /* Text */
+  --color-text-primary: #E4DFF0;
+  --color-text-secondary: #7A7890;
+  --color-text-muted: #5A586A;
+  --color-text-on-primary: #0D0C12;
+
+  /* Semantic */
+  --color-success: #5BD4A8;
+  --color-danger: #D96B7A;
+  --color-warning: #E5C05C;
+  --color-info: #6BB5D9;
+
+  /* Borders */
+  --color-border-default: rgba(124, 107, 181, 0.12);
+  --color-border-hover: rgba(124, 107, 181, 0.25);
+  --color-border-focus: #7C6BB5;
+
+  /* Pro badge */
+  --color-badge-bg: rgba(124, 107, 181, 0.12);
+  --color-badge-text: #A593CF;
+
+  /* Buyer storefront light theme */
+  --color-storefront-bg: #F8F7FC;
+  --color-storefront-surface: #FFFFFF;
+  --color-storefront-text: #1A1825;
+  --color-storefront-text2: #6B6880;
+  --color-storefront-border: rgba(124, 107, 181, 0.12);
+  --color-storefront-input: #F0EFF5;
+  --color-storefront-chip-active: #7C6BB5;
+  --color-storefront-powered-by: #B0AEBE;
+
+  /* WhatsApp */
+  --color-whatsapp: #25D366;
+
+  /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes scan-line {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s ease-in-out infinite;
 }
