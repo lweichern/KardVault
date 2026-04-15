@@ -128,7 +128,7 @@ export default function ScanPage() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-bg-primary flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-bg-primary flex flex-col">
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-2">
         <button
