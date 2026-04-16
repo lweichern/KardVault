@@ -144,6 +144,8 @@ export default function LoginPage() {
               : "Already have an account? Sign in"}
           </button>
         </div>
+
+        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.0</p>
       </div>
     </div>
   );
