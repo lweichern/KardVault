@@ -27,14 +27,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .single<Pick<Vendor, "display_name">>();
 
   if (!vendor) {
-    return { title: "Store Not Found | KadVault" };
+    return { title: "Store Not Found | KardVault" };
   }
 
   return {
-    title: `${vendor.display_name}'s Store | KadVault`,
-    description: `Browse Pokémon TCG cards from ${vendor.display_name} on KadVault`,
+    title: `${vendor.display_name}'s Store | KardVault`,
+    description: `Browse Pokémon TCG cards from ${vendor.display_name} on KardVault`,
     openGraph: {
-      title: `${vendor.display_name}'s Store | KadVault`,
+      title: `${vendor.display_name}'s Store | KardVault`,
       description: `Browse Pokémon TCG cards from ${vendor.display_name}`,
       type: "website",
     },

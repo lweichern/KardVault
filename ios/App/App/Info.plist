@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>KadVault</string>
+        <string>KardVault</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,8 +48,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>KadVault uses the camera to scan trading cards for inventory management.</string>
+	<string>KardVault uses the camera to scan trading cards for inventory management.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>KadVault needs access to your photo library to upload card condition photos.</string>
+	<string>KardVault needs access to your photo library to upload card condition photos.</string>
 </dict>
 </plist>

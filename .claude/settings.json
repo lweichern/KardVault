@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp -a /Users/weichernlim/Documents/kadvault-app/. /Users/weichernlim/Documents/KadVault/)",
+      "Bash(rm -rf /Users/weichernlim/Documents/kadvault-app)",
+      "Bash(git -C /Users/weichernlim/Documents/KadVault checkout HEAD -- CLAUDE.md)",
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3002/dashboard)",
+      "Bash(curl -s http://localhost:3002/dashboard)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' http://localhost:3002/__TRACKED_VAR__)",
+      "Bash(curl -s http://localhost:3002/inventory)",
+      "Bash(kill %1)",
+      "Bash(npx tsx *)",
+      "Bash(gtimeout 10 npx tsx scripts/sync-cards.ts)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(cat /Users/weichernlim/Documents/KadVault/.env*)",
+      "Bash(xcodebuild -version)",
+      "Bash(npx cap *)",
+      "Read(//Users/weichernlim/.nvm/versions/node/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/weichernlim/Documents/KadVault/src/app/v"
+    ]
+  }
+}

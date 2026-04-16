@@ -42,7 +42,7 @@ export default function InventoryPage() {
 
   return (
     <div className="px-4 pt-6">
-      {/* 1. Header: KadVault logo + card count */}
+      {/* 1. Header: KardVault logo + card count */}
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">
           <span className="text-text-primary">Kad</span>

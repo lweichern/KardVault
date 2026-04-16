@@ -1,11 +1,11 @@
-# KadVault iOS App via Capacitor (Live Server)
+# KardVault iOS App via Capacitor (Live Server)
 
 **Date:** 2026-04-16
 **Status:** Approved
 
 ## Goal
 
-Wrap the KadVault Next.js PWA in a native iOS shell using Capacitor so it can be distributed via TestFlight. The app loads the deployed Vercel URL in a WKWebView. No changes to existing Next.js code.
+Wrap the KardVault Next.js PWA in a native iOS shell using Capacitor so it can be distributed via TestFlight. The app loads the deployed Vercel URL in a WKWebView. No changes to existing Next.js code.
 
 ## Architecture
 

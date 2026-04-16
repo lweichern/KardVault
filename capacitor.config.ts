@@ -1,15 +1,15 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.kadvault.app",
-  appName: "KadVault",
+  appId: "com.kardvault.app",
+  appName: "KardVault",
   webDir: "public",
   server: {
-    url: "https://kadvault.vercel.app",
+    url: "https://kardvault.vercel.app",
     cleartext: false,
   },
   ios: {
-    scheme: "KadVault",
+    scheme: "KardVault",
   },
 };
 

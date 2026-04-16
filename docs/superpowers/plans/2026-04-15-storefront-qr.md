@@ -120,14 +120,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .single();
 
   if (!vendor) {
-    return { title: "Store Not Found | KadVault" };
+    return { title: "Store Not Found | KardVault" };
   }
 
   return {
-    title: `${vendor.display_name}'s Store | KadVault`,
-    description: `Browse Pokémon TCG cards from ${vendor.display_name} on KadVault`,
+    title: `${vendor.display_name}'s Store | KardVault`,
+    description: `Browse Pokémon TCG cards from ${vendor.display_name} on KardVault`,
     openGraph: {
-      title: `${vendor.display_name}'s Store | KadVault`,
+      title: `${vendor.display_name}'s Store | KardVault`,
       description: `Browse Pokémon TCG cards from ${vendor.display_name}`,
       type: "website",
     },
@@ -276,10 +276,10 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const generalWhatsAppUrl = `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent("Hi, I found your store on KadVault!")}`;
+  const generalWhatsAppUrl = `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent("Hi, I found your store on KardVault!")}`;
 
   function cardWhatsAppUrl(cardName: string) {
-    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(`I'm interested in ${cardName} from your KadVault store`)}`;
+    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(`I'm interested in ${cardName} from your KardVault store`)}`;
   }
 
   return (
@@ -443,7 +443,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
         {/* Footer */}
         <div className="text-center mt-8 pb-4">
           <p className="text-storefront-powered-by text-[11px]">
-            Powered by KadVault
+            Powered by KardVault
           </p>
         </div>
       </div>
@@ -704,7 +704,7 @@ Verify in browser:
 7. Card rows show: image, name, set, condition badge, "Available", market price (RM)
 8. No asking/sell price visible anywhere
 9. Tapping a card opens WhatsApp with card-specific message
-10. "Powered by KadVault" footer
+10. "Powered by KardVault" footer
 11. Non-existent slug shows 404
 
 **Vendor storefront tab (`/storefront`):**

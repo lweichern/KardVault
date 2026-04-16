@@ -57,10 +57,10 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
     .slice(0, 2)
     .toUpperCase();
 
-  const generalWhatsAppUrl = `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent("Hi, I found your store on KadVault!")}`;
+  const generalWhatsAppUrl = `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent("Hi, I found your store on KardVault!")}`;
 
   function cardWhatsAppUrl(cardName: string) {
-    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(`I'm interested in ${cardName} from your KadVault store`)}`;
+    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(`I'm interested in ${cardName} from your KardVault store`)}`;
   }
 
   return (
@@ -306,7 +306,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
         {/* Footer */}
         <div className="text-center mt-8 pb-4">
           <p className="text-storefront-powered-by text-[11px]">
-            Powered by KadVault
+            Powered by KardVault
           </p>
         </div>
       </div>

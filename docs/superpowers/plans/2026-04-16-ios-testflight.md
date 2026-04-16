@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wrap KadVault's Next.js PWA in a Capacitor iOS shell pointing at the deployed Vercel URL so it can be distributed via TestFlight.
+**Goal:** Wrap KardVault's Next.js PWA in a Capacitor iOS shell pointing at the deployed Vercel URL so it can be distributed via TestFlight.
 
-**Architecture:** Capacitor creates a native iOS Xcode project with a WKWebView that loads the live KadVault URL. No static export — all rendering stays server-side on Vercel. The native shell only provides the App Store distribution wrapper and future native plugin access.
+**Architecture:** Capacitor creates a native iOS Xcode project with a WKWebView that loads the live KardVault URL. No static export — all rendering stays server-side on Vercel. The native shell only provides the App Store distribution wrapper and future native plugin access.
 
 **Tech Stack:** Capacitor 7, Xcode 26.3, Node 20, Next.js 16
 
@@ -70,15 +70,15 @@ git commit -m "chore: install Capacitor core, CLI, and iOS platform"
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.kadvault.app",
-  appName: "KadVault",
+  appId: "com.kardvault.app",
+  appName: "KardVault",
   webDir: "public",
   server: {
-    url: "https://kadvault.vercel.app",
+    url: "https://kardvault.vercel.app",
     cleartext: false,
   },
   ios: {
-    scheme: "KadVault",
+    scheme: "KardVault",
   },
 };
 
@@ -87,7 +87,7 @@ export default config;
 
 Notes:
 - `webDir` is required by Capacitor but won't be used since we set `server.url` to the live deployment
-- Replace `https://kadvault.vercel.app` with your actual deployed URL if different
+- Replace `https://kardvault.vercel.app` with your actual deployed URL if different
 - `cleartext: false` enforces HTTPS only
 
 - [ ] **Step 2: Commit**
@@ -150,7 +150,7 @@ Open `ios/App/App/Info.plist` and add the following key-value pair inside the to
 
 ```xml
 <key>NSCameraUsageDescription</key>
-<string>KadVault uses the camera to scan trading cards for inventory management.</string>
+<string>KardVault uses the camera to scan trading cards for inventory management.</string>
 ```
 
 - [ ] **Step 2: Add photo library permission (for condition photos)**
@@ -159,7 +159,7 @@ In the same `Info.plist`, add:
 
 ```xml
 <key>NSPhotoLibraryUsageDescription</key>
-<string>KadVault needs access to your photo library to upload card condition photos.</string>
+<string>KardVault needs access to your photo library to upload card condition photos.</string>
 ```
 
 - [ ] **Step 3: Commit**
@@ -253,7 +253,7 @@ Run:
 mkdir -p assets
 ```
 
-Then create a simple placeholder icon. The user should replace `assets/icon.png` with the real KadVault icon later.
+Then create a simple placeholder icon. The user should replace `assets/icon.png` with the real KardVault icon later.
 
 For now, generate with whatever icon exists, or skip this step and manually set the icon in Xcode later.
 
@@ -295,14 +295,14 @@ Run:
 npm run cap:open
 ```
 
-Expected: Xcode opens with the KadVault project.
+Expected: Xcode opens with the KardVault project.
 
 - [ ] **Step 3: Verify in Xcode (manual)**
 
 In Xcode:
 1. Select the "App" target
 2. Under "Signing & Capabilities" > select your Apple Developer Team
-3. Verify Bundle Identifier is `com.kadvault.app`
+3. Verify Bundle Identifier is `com.kardvault.app`
 4. Set scheme to "Any iOS Device (arm64)" (not simulator)
 5. Build the project (Cmd+B) — should succeed
 
@@ -315,7 +315,7 @@ In Xcode:
 4. Select "App Store Connect" > "Upload"
 5. Follow prompts — Xcode signs and uploads the build
 6. Go to [App Store Connect](https://appstoreconnect.apple.com)
-7. Create a new app if needed (bundle ID: `com.kadvault.app`)
+7. Create a new app if needed (bundle ID: `com.kardvault.app`)
 8. Under TestFlight tab, the build appears after processing (~10-30 min)
 9. Add internal testers (up to 100, no review needed)
 10. Testers receive email to install via TestFlight app
@@ -324,5 +324,5 @@ In Xcode:
 
 ```bash
 git add -A
-git commit -m "feat: KadVault iOS app ready for TestFlight"
+git commit -m "feat: KardVault iOS app ready for TestFlight"
 ```
