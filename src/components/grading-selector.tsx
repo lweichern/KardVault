@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
-
 const GRADING_COMPANIES = ["PSA", "BGS", "CGC", "ACE"] as const;
 export type GradingCompany = (typeof GRADING_COMPANIES)[number];
 
-const GRADES: Record<GradingCompany, string[]> = {
-  PSA: ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"],
-  BGS: ["10", "9.5", "9", "8.5", "8", "7.5", "7", "6.5", "6", "5", "4", "3", "2", "1"],
-  CGC: ["10", "9.5", "9", "8.5", "8", "7.5", "7", "6.5", "6", "5", "4", "3", "2", "1"],
-  ACE: ["10", "9", "8", "7", "6", "5", "4", "3", "2", "1"],
+const HAS_HALF_GRADES: Record<GradingCompany, boolean> = {
+  PSA: false,
+  BGS: true,
+  CGC: true,
+  ACE: false,
 };
 
 const GRADE_LABELS: Record<string, string> = {
@@ -29,6 +27,10 @@ const GRADE_LABELS: Record<string, string> = {
   "1": "Poor",
 };
 
+function formatGrade(value: number): string {
+  return value % 1 === 0 ? value.toString() : value.toFixed(1);
+}
+
 interface GradingSelectorProps {
   isGraded: boolean;
   onToggleGraded: (graded: boolean) => void;
@@ -46,8 +48,8 @@ export function GradingSelector({
   grade,
   onGradeChange,
 }: GradingSelectorProps) {
-  const [showGrades, setShowGrades] = useState(false);
-  const availableGrades = company ? GRADES[company] : [];
+  const step = company && HAS_HALF_GRADES[company] ? 0.5 : 1;
+  const numericGrade = grade ? parseFloat(grade) : 7;
 
   return (
     <div>
@@ -93,8 +95,7 @@ export function GradingSelector({
                 type="button"
                 onClick={() => {
                   onCompanyChange(c);
-                  onGradeChange("");
-                  setShowGrades(false);
+                  onGradeChange("10");
                 }}
                 className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-colors ${
                   company === c
@@ -107,56 +108,41 @@ export function GradingSelector({
             ))}
           </div>
 
-          {/* Grade selector */}
+          {/* Grade slider */}
           {company && (
-            <>
+            <div>
               <label className="block text-text-secondary text-xs font-medium mb-1.5">
                 Grade
               </label>
-              <button
-                type="button"
-                onClick={() => setShowGrades(!showGrades)}
-                className="w-full h-11 bg-bg-surface-2 text-left rounded-xl px-3 text-sm border border-border-default focus:border-border-focus flex items-center justify-between"
-              >
-                <span className={grade ? "text-text-primary" : "text-text-muted"}>
-                  {grade
-                    ? `${grade} — ${GRADE_LABELS[grade] ?? ""}`
-                    : "Select grade..."}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-text-muted transition-transform ${showGrades ? "rotate-180" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </button>
-
-              {showGrades && (
-                <div className="mt-1 bg-bg-surface border border-border-default rounded-xl max-h-48 overflow-y-auto">
-                  {availableGrades.map((g) => (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => {
-                        onGradeChange(g);
-                        setShowGrades(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-bg-hover transition-colors ${
-                        grade === g ? "text-primary-400 font-medium" : "text-text-primary"
-                      }`}
-                    >
-                      <span>{g}</span>
-                      <span className="text-text-muted text-xs">
-                        {GRADE_LABELS[g] ?? ""}
-                      </span>
-                    </button>
-                  ))}
+              <div className="bg-bg-surface-2 rounded-xl px-4 py-3 border border-border-default">
+                {/* Grade display */}
+                <div className="flex items-baseline justify-center gap-2 mb-3">
+                  <span className="text-text-primary text-3xl font-bold">
+                    {grade || "10"}
+                  </span>
+                  <span className="text-text-secondary text-sm">
+                    {GRADE_LABELS[grade || "10"] ?? ""}
+                  </span>
                 </div>
-              )}
-            </>
+
+                {/* Slider */}
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  step={step}
+                  value={numericGrade}
+                  onChange={(e) => onGradeChange(formatGrade(parseFloat(e.target.value)))}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary-400 bg-bg-hover [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-400 [&::-webkit-slider-thumb]:shadow-md"
+                />
+
+                {/* Min/max labels */}
+                <div className="flex justify-between mt-1">
+                  <span className="text-text-muted text-[10px]">1</span>
+                  <span className="text-text-muted text-[10px]">10</span>
+                </div>
+              </div>
+            </div>
           )}
         </>
       )}
