@@ -41,7 +41,7 @@ export default function LoginPage() {
         return;
       }
     } else {
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
@@ -50,10 +50,21 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+      if (!data.session) {
+        setError("Login succeeded but no session returned. Check Supabase email confirmation settings.");
+        setLoading(false);
+        return;
+      }
     }
 
-    // Wait for cookies to persist before navigating
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Verify session is accessible
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setError("Session not persisted. Try clearing browser data and signing up again.");
+      setLoading(false);
+      return;
+    }
+
     window.location.replace("/dashboard");
   }
 
@@ -145,7 +156,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.3</p>
+        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.4</p>
       </div>
     </div>
   );
