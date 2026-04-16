@@ -25,12 +25,11 @@ export default function LoginPage() {
         email: email.trim(),
         password,
       });
-      setLoading(false);
       if (signUpError) {
         setError(signUpError.message);
+        setLoading(false);
         return;
       }
-      // Auto-login after signup
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -38,23 +37,24 @@ export default function LoginPage() {
       if (loginError) {
         setError("Account created! Sign in now.");
         setMode("login");
+        setLoading(false);
         return;
       }
-      router.refresh();
-      router.push("/dashboard");
     } else {
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
-      setLoading(false);
       if (loginError) {
         setError(loginError.message);
+        setLoading(false);
         return;
       }
-      router.refresh();
-      router.push("/dashboard");
     }
+
+    // Wait for cookies to persist before navigating
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    window.location.replace("/dashboard");
   }
 
   return (
