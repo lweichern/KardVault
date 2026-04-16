@@ -8,6 +8,7 @@ import { useVendor } from "@/hooks/use-vendor";
 import { useCardSearch } from "@/hooks/use-card-search";
 import { useInventory } from "@/hooks/use-inventory";
 import { recognizeCardNumber } from "@/lib/recognition/ocr";
+import { GradingSelector, type GradingCompany } from "@/components/grading-selector";
 import type { Database } from "@/types/database";
 
 type Card = Database["public"]["Tables"]["cards"]["Row"];
@@ -31,6 +32,9 @@ export default function ScanPage() {
   const [buyPrice, setBuyPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
   const [quantity, setQuantity] = useState(1);
+  const [isGraded, setIsGraded] = useState(false);
+  const [gradingCompany, setGradingCompany] = useState<GradingCompany | null>(null);
+  const [grade, setGrade] = useState("");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -64,6 +68,9 @@ export default function ScanPage() {
     setBuyPrice("");
     setCondition("NM");
     setQuantity(1);
+    setIsGraded(false);
+    setGradingCompany(null);
+    setGrade("");
     setAddError(null);
   }, [retake, clearSearch]);
 
@@ -90,6 +97,10 @@ export default function ScanPage() {
       setAddError("Enter a valid sell price");
       return;
     }
+    if (isGraded && (!gradingCompany || !grade)) {
+      setAddError("Select a grading company and grade");
+      return;
+    }
 
     setSaving(true);
     setAddError(null);
@@ -101,6 +112,8 @@ export default function ScanPage() {
         buyPriceRm: buyPrice ? parseFloat(buyPrice) : undefined,
         condition,
         quantity,
+        gradingCompany: isGraded ? gradingCompany ?? undefined : undefined,
+        grade: isGraded ? grade || undefined : undefined,
       });
 
       setScanState("success");
@@ -114,7 +127,7 @@ export default function ScanPage() {
       setAddError(err instanceof Error ? err.message : "Failed to add card");
       setSaving(false);
     }
-  }, [selectedCard, sellPrice, buyPrice, condition, quantity, addToInventory, handleRetake]);
+  }, [selectedCard, sellPrice, buyPrice, condition, quantity, isGraded, gradingCompany, grade, addToInventory, handleRetake]);
 
   // Clear selected card to re-search
   const handleClearCard = useCallback(() => {
@@ -124,6 +137,9 @@ export default function ScanPage() {
     setBuyPrice("");
     setCondition("NM");
     setQuantity(1);
+    setIsGraded(false);
+    setGradingCompany(null);
+    setGrade("");
     setAddError(null);
   }, []);
 
@@ -338,28 +354,40 @@ export default function ScanPage() {
               </div>
             </div>
 
-            {/* Condition selector */}
-            <div>
-              <label className="block text-text-secondary text-xs font-medium mb-1.5">
-                Condition
-              </label>
-              <div className="flex gap-2">
-                {CONDITIONS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCondition(c)}
-                    className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-colors ${
-                      condition === c
-                        ? "bg-primary-400 text-text-on-primary border-primary-400"
-                        : "bg-bg-surface-2 text-text-secondary border-border-default hover:border-border-hover"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+            {/* Grading */}
+            <GradingSelector
+              isGraded={isGraded}
+              onToggleGraded={setIsGraded}
+              company={gradingCompany}
+              onCompanyChange={setGradingCompany}
+              grade={grade}
+              onGradeChange={setGrade}
+            />
+
+            {/* Condition selector — only for raw cards */}
+            {!isGraded && (
+              <div>
+                <label className="block text-text-secondary text-xs font-medium mb-1.5">
+                  Condition
+                </label>
+                <div className="flex gap-2">
+                  {CONDITIONS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCondition(c)}
+                      className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                        condition === c
+                          ? "bg-primary-400 text-text-on-primary border-primary-400"
+                          : "bg-bg-surface-2 text-text-secondary border-border-default hover:border-border-hover"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div>

@@ -228,10 +228,12 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                   </p>
                   <span
                     className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
+                      item.grading_company
+                        ? "bg-purple-100 text-purple-800"
+                        : CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {item.condition}
+                    {item.grading_company ? `${item.grading_company} ${item.grade}` : item.condition}
                   </span>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -282,10 +284,12 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                   <div className="flex items-center justify-between mt-1.5">
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                        CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
+                        item.grading_company
+                          ? "bg-purple-100 text-purple-800"
+                          : CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {item.condition}
+                      {item.grading_company ? `${item.grading_company} ${item.grade}` : item.condition}
                     </span>
                     {item.card.market_price_rm != null && (
                       <p className="text-storefront-text text-[12px] font-bold">
