@@ -114,18 +114,10 @@ export function GradingSelector({
               <label className="block text-text-secondary text-xs font-medium mb-1.5">
                 Grade
               </label>
-              <div className="bg-bg-surface-2 rounded-xl px-4 py-3 border border-border-default">
-                {/* Grade display */}
-                <div className="flex items-baseline justify-center gap-2 mb-3">
-                  <span className="text-text-primary text-3xl font-bold">
-                    {grade || "10"}
-                  </span>
-                  <span className="text-text-secondary text-sm">
-                    {GRADE_LABELS[grade || "10"] ?? ""}
-                  </span>
-                </div>
-
-                {/* Slider */}
+              <div className="flex items-center gap-3">
+                <span className="text-text-primary text-sm font-bold w-7 text-center">
+                  {grade || "10"}
+                </span>
                 <input
                   type="range"
                   min={1}
@@ -133,14 +125,8 @@ export function GradingSelector({
                   step={step}
                   value={numericGrade}
                   onChange={(e) => onGradeChange(formatGrade(parseFloat(e.target.value)))}
-                  className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary-400 bg-bg-hover [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-400 [&::-webkit-slider-thumb]:shadow-md"
+                  className="flex-1 h-1.5 rounded-full appearance-none cursor-pointer bg-bg-hover [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-400"
                 />
-
-                {/* Min/max labels */}
-                <div className="flex justify-between mt-1">
-                  <span className="text-text-muted text-[10px]">1</span>
-                  <span className="text-text-muted text-[10px]">10</span>
-                </div>
               </div>
             </div>
           )}
