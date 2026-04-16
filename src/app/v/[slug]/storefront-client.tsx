@@ -27,6 +27,7 @@ const CONDITION_COLORS: Record<string, string> = {
 export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSet, setActiveSet] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"list" | "grid">("list");
 
   const setNames = useMemo(() => {
     const sets = new Set(items.map((item) => item.card.set_name));
@@ -125,8 +126,9 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
           />
         </div>
 
-        {/* Filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
+        {/* Filter chips + layout toggle */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setActiveSet(null)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -150,6 +152,33 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
               {setName}
             </button>
           ))}
+          </div>
+
+          {/* Layout toggle */}
+          <div className="flex flex-shrink-0 bg-storefront-surface border border-storefront-border rounded-lg p-0.5">
+            <button
+              onClick={() => setLayout("list")}
+              className={`p-1.5 rounded-md transition-colors ${
+                layout === "list" ? "bg-storefront-chip-active text-white" : "text-storefront-text2"
+              }`}
+              aria-label="List view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setLayout("grid")}
+              className={`p-1.5 rounded-md transition-colors ${
+                layout === "grid" ? "bg-storefront-chip-active text-white" : "text-storefront-text2"
+              }`}
+              aria-label="Grid view"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Card list */}
@@ -170,55 +199,105 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
           </div>
         )}
 
-        <div className="space-y-2">
-          {filteredItems.map((item) => (
-            <a
-              key={item.id}
-              href={cardWhatsAppUrl(item.card.name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 bg-storefront-surface rounded-xl p-3 border border-storefront-border hover:border-primary-400/30 transition-colors"
-            >
-              {item.card.image_small ? (
-                <img
-                  src={item.card.image_small}
-                  alt={item.card.name}
-                  className="w-[50px] h-[70px] rounded-lg object-cover bg-storefront-input flex-shrink-0"
-                />
-              ) : (
-                <div className="w-[50px] h-[70px] rounded-lg bg-storefront-input flex-shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-storefront-text text-[13px] font-medium truncate">
-                  {item.card.name}
-                </p>
-                <p className="text-storefront-text2 text-[11px] truncate">
-                  {item.card.set_name} · {item.card.card_number}
-                </p>
-                <span
-                  className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {item.condition}
-                </span>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <p className="text-green-600 text-[10px] font-medium">Available</p>
-                {item.card.market_price_rm != null && (
-                  <>
-                    <p className="text-storefront-text2 text-[9px] uppercase tracking-wide mt-0.5">
-                      Market
-                    </p>
-                    <p className="text-storefront-text text-sm font-bold">
-                      RM {item.card.market_price_rm.toFixed(2)}
-                    </p>
-                  </>
+        {/* List view */}
+        {layout === "list" && (
+          <div className="space-y-2">
+            {filteredItems.map((item) => (
+              <a
+                key={item.id}
+                href={cardWhatsAppUrl(item.card.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-storefront-surface rounded-xl p-3 border border-storefront-border hover:border-primary-400/30 transition-colors"
+              >
+                {item.card.image_small ? (
+                  <img
+                    src={item.card.image_small}
+                    alt={item.card.name}
+                    className="w-[50px] h-[70px] rounded-lg object-cover bg-storefront-input flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-[50px] h-[70px] rounded-lg bg-storefront-input flex-shrink-0" />
                 )}
-              </div>
-            </a>
-          ))}
-        </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-storefront-text text-[13px] font-medium truncate">
+                    {item.card.name}
+                  </p>
+                  <p className="text-storefront-text2 text-[11px] truncate">
+                    {item.card.set_name} · {item.card.card_number}
+                  </p>
+                  <span
+                    className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {item.condition}
+                  </span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-green-600 text-[10px] font-medium">Available</p>
+                  {item.card.market_price_rm != null && (
+                    <>
+                      <p className="text-storefront-text2 text-[9px] uppercase tracking-wide mt-0.5">
+                        Market
+                      </p>
+                      <p className="text-storefront-text text-sm font-bold">
+                        RM {item.card.market_price_rm.toFixed(2)}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Grid view */}
+        {layout === "grid" && (
+          <div className="grid grid-cols-2 gap-2">
+            {filteredItems.map((item) => (
+              <a
+                key={item.id}
+                href={cardWhatsAppUrl(item.card.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-storefront-surface rounded-xl border border-storefront-border hover:border-primary-400/30 transition-colors overflow-hidden"
+              >
+                {item.card.image_small ? (
+                  <img
+                    src={item.card.image_small}
+                    alt={item.card.name}
+                    className="w-full aspect-[5/7] object-cover bg-storefront-input"
+                  />
+                ) : (
+                  <div className="w-full aspect-[5/7] bg-storefront-input" />
+                )}
+                <div className="p-2.5">
+                  <p className="text-storefront-text text-[12px] font-medium truncate">
+                    {item.card.name}
+                  </p>
+                  <p className="text-storefront-text2 text-[10px] truncate">
+                    {item.card.set_name}
+                  </p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+                        CONDITION_COLORS[item.condition] ?? "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {item.condition}
+                    </span>
+                    {item.card.market_price_rm != null && (
+                      <p className="text-storefront-text text-[12px] font-bold">
+                        RM {item.card.market_price_rm.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-8 pb-4">
