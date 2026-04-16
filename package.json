@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "sync:cards": "tsx scripts/sync-cards.ts",
-    "sync:cards:incremental": "tsx scripts/sync-cards.ts --since 7"
+    "sync:cards:incremental": "tsx scripts/sync-cards.ts --since 7",
+    "cap:sync": "npx cap sync ios",
+    "cap:open": "npx cap open ios",
+    "cap:build": "npx cap sync ios && npx cap open ios"
   },
   "dependencies": {
     "@capacitor/core": "^8.3.1",
