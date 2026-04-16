@@ -11,6 +11,8 @@
     "sync:cards:incremental": "tsx scripts/sync-cards.ts --since 7"
   },
   "dependencies": {
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.1",
@@ -23,6 +25,7 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
