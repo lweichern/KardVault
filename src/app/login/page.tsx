@@ -101,6 +101,7 @@ export default function LoginPage() {
               placeholder={mode === "signup" ? "Create a password" : "Enter your password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
               className="w-full h-12 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-4 text-sm border border-border-default focus:border-border-focus focus:outline-none"
               required
               minLength={6}
@@ -116,8 +117,8 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !email.includes("@") || password.length < 6}
-            className="w-full h-12 bg-primary-400 text-text-on-primary font-medium text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            disabled={loading}
+            className="w-full h-12 bg-primary-400 text-text-on-primary font-medium text-sm rounded-xl disabled:opacity-50 transition-opacity"
           >
             {loading
               ? mode === "signup" ? "Creating account..." : "Signing in..."
