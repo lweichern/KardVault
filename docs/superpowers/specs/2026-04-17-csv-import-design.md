@@ -29,10 +29,10 @@ Malaysian TCG vendors already track inventory in spreadsheets (Excel, Google She
 ## Non-Goals (v1)
 
 - Foil/printing field (Pokémon has holo/reverse-holo/etc. that matter; deferred as a separate feature that also touches scan flow)
-- Graded card import (PSA/BGS/CGC) — no standard column exists; deferred
 - Server-side fallback for huge files — client-side is adequate up to ~10K rows
 - Multi-file import
-- Merge-into-existing-inventory logic beyond the existing UNIQUE constraint on `(vendor_id, card_id, condition)`
+- Currency conversion — v1 assumes imported prices are in RM. Users with USD spreadsheets need to convert before import.
+- Merge-into-existing-inventory logic beyond the existing UNIQUE constraint on `(vendor_id, card_id, condition, grading_company, grade)`
 
 ---
 
@@ -52,7 +52,7 @@ Malaysian TCG vendors already track inventory in spreadsheets (Excel, Google She
   - Column label + first 3 sample values
   - Dropdown to assign the KardVault field (or skip)
 - Top-right count: "4 of 6 auto-detected"
-- KardVault fields in the dropdown: `Card name`, `Set`, `Card number`, `Sell price`, `Buy price`, `Condition`, `Quantity`, `Skip`
+- KardVault fields in the dropdown: `Card name`, `Set`, `Card number`, `Sell price`, `Buy price`, `Condition`, `Quantity`, `Grading` (combined PSA/BGS + grade), `Skip`
 - Primary CTA: "Match N cards against database"
 - Requires `Card name` to be mapped — disable CTA otherwise
 
@@ -169,11 +169,12 @@ const ALIASES: Record<KardVaultField, string[]> = {
     'buy price', 'cost price', 'purchase price', 'paid',
     'price bought', 'purchase_price', 'cost'
   ],
-  condition: ['condition', 'cond', 'grade', 'quality'],
+  condition: ['condition', 'cond', 'quality'],
   quantity: [
     'qty', 'quantity', 'count', 'amount',
     'total quantity', 'add to quantity', 'tradelist count'
   ],
+  grading: ['grade', 'grading', 'graded', 'grader'],
 };
 ```
 
@@ -187,6 +188,7 @@ Applied only to columns that header-matching didn't claim:
 - **price fields:** column where ≥80% of values parse as positive floats between 0.01 and 100000
 - **condition:** column where ≥70% of values match a known condition alias (see normalizer)
 - **quantity:** column where ≥90% of values parse as positive integers 1–9999
+- **grading:** column where ≥30% of values match `/(PSA|BGS|CGC|ACE|SGC)\s*\d+(\.\d)?/i`
 
 If two columns could both be "sell_price" by pattern, the one with the larger header-alias match wins. If neither has a matching header, ask the user.
 
@@ -220,6 +222,20 @@ Algorithm:
 3. If no match, return `null` and the row falls back to the vendor-selected default (NM, from a dropdown on the preview screen)
 
 Deckbox's `Good (Lightly Played)` matches because after punctuation-strip it becomes `goodlightlyplayed` which contains `lightlyplayed`.
+
+---
+
+## Grading parser (`lib/import/grading-parser.ts`)
+
+Parses a grading cell like `PSA 10`, `BGS 9.5`, `CGC 9`, `ACE 10`, `SGC 8.5` into structured fields.
+
+Algorithm:
+1. Uppercase, collapse whitespace
+2. Regex: `/^(PSA|BGS|CGC|ACE|SGC)\s*(\d+(?:\.\d+)?)\s*$/`
+3. On match, set `grading_company` and `grade` on the inventory row
+4. On no match OR empty cell, leave grading fields null (row is treated as raw)
+
+Inventory's UNIQUE constraint `(vendor_id, card_id, condition, COALESCE(grading_company, ''), COALESCE(grade, ''))` naturally separates graded variants from raw — no extra dedup logic needed.
 
 ---
 
@@ -296,7 +312,7 @@ If no sell-price column was mapped, the batch pricing selector on the preview sc
 - 90% / 80%: `sell_price_rm = card.market_price_rm * 0.9 | 0.8`
 - Custom: vendor-entered multiplier (0.5 – 2.0)
 
-**Currency:** v1 assumes imported prices are already in RM. If we later find that most competitor exports are in USD, we'll add a currency toggle. Out of scope here.
+**Currency:** v1 assumes imported prices are already in RM. No in-app conversion. Users with USD-denominated spreadsheets need to convert before import. If real-world usage shows most vendors have USD data, we'll revisit.
 
 ---
 
@@ -318,6 +334,7 @@ All errors are user-facing and actionable — no silent failures.
 | Scenario | Handling |
 |---|---|
 | File > 5 MB | Reject on upload with "File too large — max 5 MB. Split your file or contact support." |
+| File > 5,000 rows | After parsing, reject with "This file has N rows. Max supported is 5,000. Split your file into smaller batches." |
 | File is neither .csv nor .xlsx | Reject on upload with "Only CSV and Excel files are supported." |
 | Papa Parse/SheetJS throws | Show the parse error verbatim with a "try again" button |
 | Zero rows detected | "We couldn't find any data in this file. Is the first row a header?" |
@@ -340,17 +357,14 @@ All errors are user-facing and actionable — no silent failures.
 
 ---
 
-## Open questions (resolved during design)
+## Decisions log
 
-- **Foil/printing:** deferred. Not in v1 schema.
-- **Sell-price default:** batch pricing selector on preview screen.
+- **Foil/printing:** deferred. Not in v1 schema — requires separate feature touching scan + inventory + storefront.
+- **Sell-price default:** batch pricing selector on preview screen when no sell-price column was mapped.
 - **Free tier access:** yes, gated by 50-card cap at import time.
-
-## Still open (to resolve before implementation)
-
-- **Currency assumption:** v1 assumes RM. Need to confirm with user that Malaysian vendor spreadsheets are RM-denominated (not USD). If a competitor app export is in USD, we convert at import time or we reject? **Recommend: show a currency toggle on the mapping screen if any price column is detected; default to RM.**
-- **Graded cards in scan flow:** the `grading-selector.tsx` component exists. If a CSV has a `Grade` column (e.g. `PSA 10`), should we respect it? **Recommend: parse into `notes` as freeform for v1, because dedup key `(vendor_id, card_id, condition)` doesn't accommodate graded variants without schema change.**
-- **Max rows:** 5 MB file limit translates to ~50K rows of typical CSV. Do we cap at 5K rows explicitly to keep the preview screen fast? **Recommend: yes, cap at 5K with a clear error message.**
+- **Currency:** RM only. No toggle, no conversion. Users with USD data convert manually before import.
+- **Graded cards:** supported via dedicated grading parser (`PSA 10`, `BGS 9.5`, etc.). Populates `inventory.grading_company` + `inventory.grade` (existing columns from migration 00003). UNIQUE constraint already handles graded vs raw dedup.
+- **Row cap:** 5,000 rows maximum. Files over cap rejected with clear error message.
 
 ---
 
