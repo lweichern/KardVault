@@ -96,7 +96,7 @@ describe("detectColumns — header matching", () => {
 });
 
 describe("detectColumns — data pattern fallback", () => {
-  it("identifies a plain-integer card number column by values", () => {
+  it("identifies a plain-integer column as quantity by values (not card_number)", () => {
     const parsed: ParsedFile = {
       headers: ["Mystery"],
       rows: Array.from({ length: 10 }, (_, i) => ({ Mystery: String(i + 1) })),
@@ -105,7 +105,7 @@ describe("detectColumns — data pattern fallback", () => {
       sizeBytes: 10,
     };
     const [mapping] = detectColumns(parsed);
-    expect(mapping.field).toBe("card_number");
+    expect(mapping.field).toBe("quantity");
     expect(mapping.confidence).toBe("pattern");
   });
 
@@ -172,6 +172,6 @@ describe("detectColumns — data pattern fallback", () => {
     };
     const [q, r] = detectColumns(parsed);
     expect(q.field).toBe("quantity");
-    expect(r.field).toBe("card_number");
+    expect(r.field).toBe("sell_price");
   });
 });

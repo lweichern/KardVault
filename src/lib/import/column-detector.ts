@@ -12,7 +12,7 @@ const ALIASES: Record<KardVaultField, string[]> = {
   grading: ["grade", "grading", "graded", "grader"],
 };
 
-const CARD_NUMBER_RE = /^(\d{1,4}(\/\d{1,4})?|[A-Z]{1,4}\d{1,4}(-\d{1,4})?)$/;
+const CARD_NUMBER_RE = /^(\d{1,4}\/\d{1,4}|[A-Z]{1,4}\d{1,4}(-\d{1,4})?)$/;
 const POSITIVE_INT_RE = /^\d{1,4}$/;
 const POSITIVE_FLOAT_RE = /^\d+(\.\d+)?$/;
 const GRADING_RE = /(PSA|BGS|CGC|ACE|SGC)\s*\d+(\.\d+)?/i;
