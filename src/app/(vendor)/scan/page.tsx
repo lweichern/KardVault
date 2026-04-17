@@ -146,7 +146,7 @@ export default function ScanPage() {
   return (
     <div className="fixed inset-0 z-[60] bg-bg-primary flex flex-col">
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-2">
+      <div className="relative z-10 flex items-center justify-between px-4 pb-2" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}>
         <button
           onClick={() => router.push("/inventory")}
           className="flex items-center justify-center w-9 h-9 rounded-full bg-bg-surface/80 backdrop-blur-sm"
@@ -257,7 +257,7 @@ export default function ScanPage() {
       </div>
 
       {/* Bottom panel — scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pt-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}>
         {/* Camera error fallback — show search even without camera */}
         {cameraStatus === "error" && !selectedCard && (
           <div className="mb-4">

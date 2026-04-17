@@ -41,26 +41,33 @@ export default function LoginPage() {
         return;
       }
     } else {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { data, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
       if (loginError) {
         setError(loginError.message);
         setLoading(false);
         return;
       }
       if (!data.session) {
-        setError("Login succeeded but no session returned. Check Supabase email confirmation settings.");
+        setError(
+          "Login succeeded but no session returned. Check Supabase email confirmation settings.",
+        );
         setLoading(false);
         return;
       }
     }
 
     // Verify session is accessible
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
-      setError("Session not persisted. Try clearing browser data and signing up again.");
+      setError(
+        "Session not persisted. Try clearing browser data and signing up again.",
+      );
       setLoading(false);
       return;
     }
@@ -113,14 +120,18 @@ export default function LoginPage() {
             <input
               id="password"
               type="password"
-              placeholder={mode === "signup" ? "Create a password" : "Enter your password"}
+              placeholder={
+                mode === "signup" ? "Create a password" : "Enter your password"
+              }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
               className="w-full h-12 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-4 text-sm border border-border-default focus:border-border-focus focus:outline-none"
               required
               minLength={6}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
             />
           </div>
 
@@ -136,8 +147,12 @@ export default function LoginPage() {
             className="w-full h-12 bg-primary-400 text-text-on-primary font-medium text-sm rounded-xl disabled:opacity-50 transition-opacity"
           >
             {loading
-              ? mode === "signup" ? "Creating account..." : "Signing in..."
-              : mode === "signup" ? "Create account" : "Sign in"}
+              ? mode === "signup"
+                ? "Creating account..."
+                : "Signing in..."
+              : mode === "signup"
+                ? "Create account"
+                : "Sign in"}
           </button>
         </form>
 
@@ -156,7 +171,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.5</p>
+        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.6</p>
       </div>
     </div>
   );
