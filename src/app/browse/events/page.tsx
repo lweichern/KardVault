@@ -2,11 +2,31 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useEvents, CITIES, type City } from "@/hooks/use-events";
+import { useEvents, CITIES, type City, useEventActions } from "@/hooks/use-events";
 
 export default function EventsPage() {
   const [cityFilter, setCityFilter] = useState<City | null>(null);
   const { events, loading } = useEvents(cityFilter);
+  const { searchCardAcrossEvents } = useEventActions();
+  const [cardQuery, setCardQuery] = useState("");
+  const [searchingCard, setSearchingCard] = useState(false);
+  const [cardResults, setCardResults] = useState<
+    | { event: { id: string; name: string; date: string; city: string }; vendorCount: number }[]
+    | null
+  >(null);
+
+  const handleCardSearch = async () => {
+    if (!cardQuery.trim()) return;
+    setSearchingCard(true);
+    try {
+      const data = await searchCardAcrossEvents(cardQuery.trim());
+      setCardResults(data);
+    } catch {
+      setCardResults([]);
+    } finally {
+      setSearchingCard(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-storefront-bg">
@@ -46,6 +66,74 @@ export default function EventsPage() {
               {city}
             </button>
           ))}
+        </div>
+
+        {/* Card finder banner */}
+        <div className="bg-storefront-surface rounded-xl border border-storefront-border p-4 mb-4">
+          <p className="text-storefront-text text-sm font-medium mb-2">
+            Looking for a specific card?
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={cardQuery}
+              onChange={(e) => setCardQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleCardSearch()}
+              placeholder="e.g. Charizard ex"
+              className="flex-1 bg-storefront-input text-storefront-text placeholder:text-storefront-text2 rounded-xl px-3 py-2 text-sm border border-storefront-border focus:border-primary-400 focus:outline-none"
+            />
+            <button
+              onClick={handleCardSearch}
+              disabled={searchingCard || !cardQuery.trim()}
+              className="px-4 rounded-xl bg-storefront-chip-active text-white text-sm font-medium disabled:opacity-40"
+            >
+              {searchingCard ? "..." : "Find"}
+            </button>
+          </div>
+
+          {/* Cross-event results */}
+          {cardResults !== null && (
+            <div className="mt-3">
+              {cardResults.length === 0 ? (
+                <p className="text-storefront-text2 text-xs text-center py-2">
+                  No vendors have &ldquo;{cardQuery}&rdquo; at upcoming events
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {cardResults.map((r) => {
+                    const dateStr = new Date(r.event.date).toLocaleDateString(
+                      "en-MY",
+                      { weekday: "short", day: "numeric", month: "short" }
+                    );
+                    return (
+                      <Link
+                        key={r.event.id}
+                        href={`/browse/events/${r.event.id}?q=${encodeURIComponent(cardQuery)}`}
+                        className="flex items-center justify-between p-2.5 bg-storefront-input rounded-lg hover:bg-storefront-input/80"
+                      >
+                        <div>
+                          <p className="text-storefront-text text-xs font-medium">
+                            {r.event.name}
+                          </p>
+                          <p className="text-storefront-text2 text-[10px]">
+                            {dateStr} · {r.event.city}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-storefront-text text-sm font-bold">
+                            {r.vendorCount}
+                          </p>
+                          <p className="text-storefront-text2 text-[10px]">
+                            {r.vendorCount === 1 ? "vendor" : "vendors"}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {loading ? (
