@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
+import { SalesReportModal } from "@/components/sales-report-modal";
+import { useVendor } from "@/hooks/use-vendor";
 import {
   useDashboard,
   timeAgo,
@@ -27,8 +29,10 @@ type ChartType = "area" | "bar";
 export default function DashboardPage() {
   const { user } = useAuth();
   const d = useDashboard(user?.id);
+  const { vendor } = useVendor(user?.id);
   const [period, setPeriod] = useState<Period>("30D");
   const [chartType, setChartType] = useState<ChartType>("area");
+  const [showReport, setShowReport] = useState(false);
 
   const chartData =
     period === "7D"
@@ -87,6 +91,19 @@ export default function DashboardPage() {
               delta={d.cardsSoldDelta}
             />
           </div>
+
+          {/* Today's Report button */}
+          {d.todaySalesCount > 0 && (
+            <button
+              onClick={() => setShowReport(true)}
+              className="w-full flex items-center justify-center gap-2 h-11 bg-primary-800 text-primary-50 text-sm font-medium rounded-xl border border-primary-600"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12M12 16.5V3" />
+              </svg>
+              Today&apos;s Report · {d.todaySalesCount} cards sold
+            </button>
+          )}
 
           {/* 3. Revenue chart card */}
           <div className="bg-bg-surface rounded-xl p-4">
@@ -400,6 +417,17 @@ export default function DashboardPage() {
             </div>
           )}
         </>
+      )}
+
+      {showReport && vendor && (
+        <SalesReportModal
+          vendorName={vendor.display_name}
+          salesCount={d.todaySalesCount}
+          revenue={d.todayRevenue}
+          avgMarginPct={d.todayAvgMarginPct}
+          bestSeller={d.todayBestSeller}
+          onClose={() => setShowReport(false)}
+        />
       )}
     </div>
   );
