@@ -289,6 +289,116 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* 8. Buyer Interest Signals */}
+          {(d.mostViewedCards.length > 0 || d.searchMisses.length > 0) && (
+            <div>
+              <h2 className="text-text-secondary text-xs font-medium uppercase tracking-wide mb-2">
+                Buyer Insights
+              </h2>
+              <div className="space-y-3">
+                {/* Most viewed */}
+                {d.mostViewedCards.length > 0 && (
+                  <div className="bg-bg-surface rounded-xl p-3">
+                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-2">
+                      Most Viewed This Week
+                    </p>
+                    <div className="space-y-2">
+                      {d.mostViewedCards.map((item) => (
+                        <div
+                          key={item.card.id}
+                          className="flex items-center gap-2"
+                        >
+                          {item.card.image_small ? (
+                            <img
+                              src={item.card.image_small}
+                              alt={item.card.name}
+                              className="w-7 h-10 rounded object-cover bg-bg-surface-2 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-10 rounded bg-bg-surface-2 shrink-0" />
+                          )}
+                          <p className="text-text-primary text-xs font-medium truncate flex-1">
+                            {item.card.name}
+                          </p>
+                          <span className="text-text-muted text-xs flex items-center gap-0.5 shrink-0">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            </svg>
+                            {item.viewCount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Viewed but unsold */}
+                {d.viewedButUnsold.length > 0 && (
+                  <div className="bg-bg-surface rounded-xl p-3">
+                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">
+                      Viewed But Not Sold
+                    </p>
+                    <p className="text-text-muted text-[10px] mb-2">
+                      Consider adjusting prices on these
+                    </p>
+                    <div className="space-y-2">
+                      {d.viewedButUnsold.map((item) => (
+                        <div
+                          key={item.card.id}
+                          className="flex items-center gap-2"
+                        >
+                          {item.card.image_small ? (
+                            <img
+                              src={item.card.image_small}
+                              alt={item.card.name}
+                              className="w-7 h-10 rounded object-cover bg-bg-surface-2 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-10 rounded bg-bg-surface-2 shrink-0" />
+                          )}
+                          <p className="text-text-primary text-xs font-medium truncate flex-1">
+                            {item.card.name}
+                          </p>
+                          <span className="text-warning text-xs shrink-0">
+                            {item.viewCount} views
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Search misses */}
+                {d.searchMisses.length > 0 && (
+                  <div className="bg-bg-surface rounded-xl p-3">
+                    <p className="text-text-muted text-[10px] uppercase tracking-wide mb-1">
+                      Buyers Searched For
+                    </p>
+                    <p className="text-text-muted text-[10px] mb-2">
+                      Cards buyers wanted that you don&apos;t stock
+                    </p>
+                    <div className="space-y-1.5">
+                      {d.searchMisses.map((miss) => (
+                        <div
+                          key={miss.query}
+                          className="flex items-center justify-between"
+                        >
+                          <p className="text-text-primary text-xs">
+                            &ldquo;{miss.query}&rdquo;
+                          </p>
+                          <span className="text-text-muted text-[11px]">
+                            {miss.searchCount}x
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
