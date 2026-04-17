@@ -16,6 +16,7 @@ export function useInventory(vendorId: string | undefined) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalProfit, setTotalProfit] = useState<number | null>(null);
+  const [viewCounts, setViewCounts] = useState<Map<string, number>>(new Map());
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -71,10 +72,31 @@ export function useInventory(vendorId: string | undefined) {
     setTotalProfit(totalRevenue - totalCost);
   }, [vendorId, supabase]);
 
+  const fetchViewCounts = useCallback(async () => {
+    if (!vendorId) return;
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const { data } = await (supabase as any)
+      .from("storefront_views")
+      .select("card_id")
+      .eq("vendor_id", vendorId)
+      .gte("viewed_at", weekAgo.toISOString());
+
+    if (data) {
+      const counts = new Map<string, number>();
+      for (const row of data as { card_id: string }[]) {
+        counts.set(row.card_id, (counts.get(row.card_id) ?? 0) + 1);
+      }
+      setViewCounts(counts);
+    }
+  }, [vendorId, supabase]);
+
   useEffect(() => {
     fetchInventory();
     fetchProfit();
-  }, [fetchInventory, fetchProfit]);
+    fetchViewCounts();
+  }, [fetchInventory, fetchProfit, fetchViewCounts]);
 
   async function addToInventory(params: {
     cardId: string;
@@ -200,5 +222,6 @@ export function useInventory(vendorId: string | undefined) {
     totalMarketValue,
     totalAskingPrice,
     totalProfit,
+    viewCounts,
   };
 }
