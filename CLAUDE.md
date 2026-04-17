@@ -411,13 +411,20 @@ Most operations go through Supabase client SDK directly. Custom API routes only 
 
 **Concept:** Vendors tag which bazaar/event they're attending this weekend. Buyers can browse an event page showing all attending vendors and search across their combined inventory before deciding to go.
 
+**Discovery model: hybrid admin-seeded + vendor-created.**
+
+The Malaysian TCG event scene is small and knowable (~10-20 major events/year: Comic Fiesta, PopCon Asia, major mall bazaars, Pokémon League Cups). Admin-seeding the majors solves the cold-start problem — buyers see real events day one, before any vendor has tagged anything. Vendors can still create long-tail events (weekend mall bazaars, small meetups) the admin team doesn't know about. Events carry a `source` field distinguishing the two tiers.
+
 **Vendor flow:**
-1. Vendor taps "I'm going to an event" → selects from a list of upcoming events or creates a new one (name, date, location)
-2. Their full inventory becomes linked to that event page
-3. Takes 2 seconds — no extra work beyond the initial tap
+1. Vendor taps "I'm going to an event" → sees combined list of upcoming official + nearby community events
+2. If listed, taps to join (their inventory auto-links to that event)
+3. If missing, taps "Create new event" → enters name, date, end_date, city (from controlled list), venue, optional booth info
+4. On submit, system fuzzy-matches name (pg_trgm) AND checks for events at the same city+date → if match found, prompts "An event already exists: _Comic Fiesta 2026_ — join it instead?"
+5. Only creates a new event if vendor confirms no existing match fits
+6. Takes 2 seconds in the common case (tap existing event) — creation flow is the exception
 
 **Buyer flow:**
-1. Buyer opens KardVault → sees "Upcoming events near you"
+1. Buyer opens KardVault → sees "Upcoming events near you" (official + community mixed chronologically; official shows a small verified checkmark, community shows plain)
 2. Taps an event (e.g. "Comic Fiesta — 12 vendors listed")
 3. Searches across ALL vendors attending that event: "Who has Charizard ex?"
 4. Sees "3 vendors have this card" — no prices shown, just vendor names and booth info
@@ -425,17 +432,44 @@ Most operations go through Supabase client SDK directly. Custom API routes only 
 
 **Key design rule:** Event search results NEVER show prices. Only show: card name, number of vendors who have it, and vendor display names. Prices are only visible on individual vendor storefronts (via QR scan at the booth). This drives foot traffic to the event — the buyer must show up to see the deal.
 
+**"Near you" resolution:**
+- Cities are a controlled list: KL, PJ, Penang, JB, Ipoh, Kuching, Kota Kinabalu, Melaka (freeform fragments the pool)
+- Buyer: browser geolocation on first visit → map coords to nearest city on the list. Fallback: manual city picker
+- "Near you" = same city, sorted by date ascending
+
+**Time window:** Upcoming = `end_date >= today` (or `date >= today` if no end_date). Past events fall off automatically — no archiving logic needed.
+
+**Moderation:**
+- Creator can edit/delete their community event **until** a second vendor joins. After that, it's community-owned and only admin can delete
+- Any vendor can flag an event as spam/duplicate → admin review queue
+- Duplicate merging is admin-only: moves `event_vendors` rows to the canonical event, soft-deletes the duplicate
+- Official events are never editable by vendors
+
+**Admin workflow:**
+- One-time bootstrap: manually insert ~10-15 known major Malaysian events before launching event mode (sources: Comic Fiesta page, TCG community FB groups, retailer announcements)
+- Ongoing: quarterly, add the next batch of known majors (~30 min/quarter)
+- Flag queue review: ~10-15 min/week at 500 vendors
+- Admin route `/admin/events` behind service-role check (don't overbuild the UI — SQL inserts are fine at this scale)
+
 **Schema additions (future):**
 ```sql
 CREATE TABLE events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  location TEXT NOT NULL,
+  city TEXT NOT NULL CHECK (city IN ('KL','PJ','Penang','JB','Ipoh','Kuching','Kota Kinabalu','Melaka')),
+  venue TEXT,
   date DATE NOT NULL,
   end_date DATE,
-  created_by UUID REFERENCES vendors(id),
+  source TEXT NOT NULL DEFAULT 'community' CHECK (source IN ('official', 'community')),
+  created_by UUID REFERENCES vendors(id), -- NULL for official events seeded by admin
+  flagged_count INTEGER NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMPTZ, -- soft delete for merged duplicates
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Trigram index for fuzzy name match on create
+CREATE INDEX idx_events_name_trgm ON events USING gin (name gin_trgm_ops);
+CREATE INDEX idx_events_upcoming ON events (city, date) WHERE deleted_at IS NULL;
 
 CREATE TABLE event_vendors (
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
@@ -444,9 +478,23 @@ CREATE TABLE event_vendors (
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (event_id, vendor_id)
 );
+
+CREATE TABLE event_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  flagged_by UUID NOT NULL REFERENCES vendors(id),
+  reason TEXT, -- 'duplicate', 'spam', 'wrong_info', etc.
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
-**Why this matters:** Creates a reason for buyers to open the app BETWEEN bazaars, not just at them. Drives foot traffic to events (organizers will love this). The more vendors tag an event, the more useful it is for buyers, which drives more attendance, which makes vendors want to tag next time — flywheel effect.
+**Why this matters:** Creates a reason for buyers to open the app BETWEEN bazaars, not just at them. Drives foot traffic to events (organizers will love this). The more vendors tag an event, the more useful it is for buyers, which drives more attendance, which makes vendors want to tag next time — flywheel effect. The hybrid seed model prevents the dead-empty-state problem that pure vendor-seeded discovery would suffer.
+
+**Known edge cases (defer):**
+- Recurring weekly/monthly events (e.g. standing mall bazaar every Saturday) — either one event per occurrence or a "recurring event" model. Defer until there's real demand
+- Cancelled events — creator can soft-delete; admin can cancel official events
+- Date changes on official events — admin updates, joined vendors notified (future)
 
 **Not in MVP.** Build after cross-vendor search is live, since event mode depends on searching across multiple vendor inventories.
 

@@ -19,7 +19,12 @@
       "Bash(cat /Users/weichernlim/Documents/KadVault/.env*)",
       "Bash(xcodebuild -version)",
       "Bash(npx cap *)",
-      "Read(//Users/weichernlim/.nvm/versions/node/**)"
+      "Read(//Users/weichernlim/.nvm/versions/node/**)",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/weichernlim/Documents/KadVault/iOS_app_icon,_202604162344.png\")",
+      "Bash(sips -z 1024 1024 \"/Users/weichernlim/Documents/KadVault/iOS_app_icon,_202604162344.png\" --out \"/Users/weichernlim/Documents/KadVault/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png\")",
+      "Bash(sips -s format png \"/Users/weichernlim/Documents/KadVault/iOS_app_icon,_202604162344.png\" --out \"/Users/weichernlim/Documents/KadVault/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png\" --resampleHeightWidth 1024 1024)",
+      "Bash(sips -g pixelWidth -g pixelHeight \"/Users/weichernlim/Documents/KadVault/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png\")",
+      "Bash(claude update *)"
     ],
     "additionalDirectories": [
       "/Users/weichernlim/Documents/KadVault/src/app/v"

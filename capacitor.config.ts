@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "KardVault",
   webDir: "public",
   server: {
-    url: "https://kardvault.vercel.app",
+    url: "https://kard-vault.vercel.app/",
     cleartext: false,
   },
   ios: {

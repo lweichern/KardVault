@@ -59,8 +59,20 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
 
   const generalWhatsAppUrl = `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent("Hi, I found your store on KardVault!")}`;
 
-  function cardWhatsAppUrl(cardName: string) {
-    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(`I'm interested in ${cardName} from your KardVault store`)}`;
+  function cardWhatsAppUrl(item: StorefrontItem) {
+    const conditionLabel = item.grading_company
+      ? `${item.grading_company} ${item.grade}`
+      : item.condition;
+    const imageUrl = item.card.image_large || item.card.image_small;
+    const lines = [
+      `Hi, I'm interested in this card from your KardVault store:`,
+      ``,
+      `${item.card.name}`,
+      `Set: ${item.card.set_name} · ${item.card.card_number}`,
+      `Condition: ${conditionLabel}`,
+    ];
+    if (imageUrl) lines.push(``, imageUrl);
+    return `https://wa.me/${vendor.whatsappNumber}?text=${encodeURIComponent(lines.join("\n"))}`;
   }
 
   return (
@@ -205,7 +217,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
             {filteredItems.map((item) => (
               <a
                 key={item.id}
-                href={cardWhatsAppUrl(item.card.name)}
+                href={cardWhatsAppUrl(item)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 bg-storefront-surface rounded-xl p-3 border border-storefront-border hover:border-primary-400/30 transition-colors"
@@ -260,7 +272,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
             {filteredItems.map((item) => (
               <a
                 key={item.id}
-                href={cardWhatsAppUrl(item.card.name)}
+                href={cardWhatsAppUrl(item)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-storefront-surface rounded-xl border border-storefront-border hover:border-primary-400/30 transition-colors overflow-hidden"
