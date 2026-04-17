@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInventory, type InventoryItem } from "@/hooks/use-inventory";
+import { useVendor } from "@/hooks/use-vendor";
 import { CardSearch } from "@/components/card-search";
 import { AddCardModal } from "@/components/add-card-modal";
 import { SellModal } from "@/components/sell-modal";
@@ -13,6 +14,7 @@ type Card = Database["public"]["Tables"]["cards"]["Row"];
 
 export default function InventoryPage() {
   const { user } = useAuth();
+  const { vendor } = useVendor(user?.id);
   const {
     items,
     loading,
@@ -28,6 +30,41 @@ export default function InventoryPage() {
   const [sellItem, setSellItem] = useState<InventoryItem | null>(null);
   const [filter, setFilter] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+
+  const isFreeTier = vendor?.tier === "free";
+
+  const handleExportCSV = useCallback(() => {
+    if (items.length === 0) return;
+    const headers = ["Card name", "Set", "Card number", "Condition", "Quantity", "Sell price", "Buy price", "Grading"];
+    const escapeField = (val: string) => {
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+    const rows = items.map((item) => {
+      const grading = item.grading_company && item.grade ? `${item.grading_company} ${item.grade}` : "";
+      return [
+        escapeField(item.card.name),
+        escapeField(item.card.set_name),
+        escapeField(item.card.card_number),
+        item.condition,
+        String(item.quantity),
+        item.sell_price_rm.toFixed(2),
+        item.buy_price_rm != null ? item.buy_price_rm.toFixed(2) : "",
+        grading,
+      ].join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const slug = vendor?.slug ?? "inventory";
+    a.download = `kardvault-${slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [items, vendor?.slug]);
 
   const filtered = filter
     ? items.filter(
@@ -103,7 +140,11 @@ export default function InventoryPage() {
           </svg>
           Import CSV
         </Link>
-        <button className="flex items-center justify-center gap-1.5 h-10 bg-bg-surface text-text-secondary text-xs font-medium rounded-xl border border-border-default">
+        <button
+          onClick={handleExportCSV}
+          disabled={items.length === 0}
+          className="flex items-center justify-center gap-1.5 h-10 bg-bg-surface text-text-secondary text-xs font-medium rounded-xl border border-border-default disabled:opacity-40"
+        >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
           </svg>
