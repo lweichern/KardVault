@@ -101,7 +101,7 @@ export default function ProfilePage() {
     <div className="px-4 pt-6 pb-24">
       <header className="mb-6">
         <h1 className="text-xl font-bold">
-          <span className="text-text-primary">Kad</span>
+          <span className="text-text-primary">Kard</span>
           <span className="text-primary-400">Vault</span>
         </h1>
         <p className="text-text-secondary text-sm mt-1">Profile & Branding</p>

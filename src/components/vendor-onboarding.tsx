@@ -36,7 +36,7 @@ export function VendorOnboarding({ onCreate }: VendorOnboardingProps) {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            <span className="text-text-primary">Kad</span>
+            <span className="text-text-primary">Kard</span>
             <span className="text-primary-400">Vault</span>
           </h1>
           <p className="text-text-secondary text-sm">

@@ -70,3 +70,13 @@ body {
 .animate-scan-line {
   animation: scan-line 2s ease-in-out infinite;
 }
+
+@keyframes splash-scale {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes splash-fade {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}

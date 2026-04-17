@@ -83,7 +83,7 @@ export default function InventoryPage() {
       {/* 1. Header: KardVault logo + card count */}
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">
-          <span className="text-text-primary">Kad</span>
+          <span className="text-text-primary">Kard</span>
           <span className="text-primary-400">Vault</span>
         </h1>
         <span className="text-text-secondary text-sm">

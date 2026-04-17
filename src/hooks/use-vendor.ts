@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 import type { Database } from "@/types/database";
 
@@ -9,6 +9,7 @@ type Vendor = Database["public"]["Tables"]["vendors"]["Row"];
 export function useVendor(userId: string | undefined) {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchedForId = useRef<string | undefined>(undefined);
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
@@ -16,9 +17,11 @@ export function useVendor(userId: string | undefined) {
   const fetchVendor = useCallback(async () => {
     if (!userId) {
       setLoading(false);
+      fetchedForId.current = undefined;
       return;
     }
 
+    setLoading(true);
     const { data, error } = await supabase
       .from("vendors")
       .select("*")
@@ -30,12 +33,15 @@ export function useVendor(userId: string | undefined) {
     } else {
       setVendor(null);
     }
+    fetchedForId.current = userId;
     setLoading(false);
   }, [userId, supabase]);
 
   useEffect(() => {
     fetchVendor();
   }, [fetchVendor]);
+
+  const stillLoading = loading || (!!userId && fetchedForId.current !== userId);
 
   async function createVendor(params: {
     displayName: string;
@@ -110,5 +116,5 @@ export function useVendor(userId: string | undefined) {
     return data.publicUrl;
   }
 
-  return { vendor, loading, createVendor, updateVendor, uploadImage, refresh: fetchVendor };
+  return { vendor, loading: stillLoading, createVendor, updateVendor, uploadImage, refresh: fetchVendor };
 }

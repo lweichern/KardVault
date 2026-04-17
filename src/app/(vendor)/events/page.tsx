@@ -74,7 +74,7 @@ export default function VendorEventsPage() {
       <header className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold">
-            <span className="text-text-primary">Kad</span>
+            <span className="text-text-primary">Kard</span>
             <span className="text-primary-400">Vault</span>
           </h1>
           <p className="text-text-secondary text-sm mt-1">Events</p>

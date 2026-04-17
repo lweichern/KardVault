@@ -74,7 +74,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">
-            <span className="text-text-primary">Kad</span>
+            <span className="text-text-primary">Kard</span>
             <span className="text-primary-400">Vault</span>
           </h1>
           <p className="text-text-secondary text-sm">
