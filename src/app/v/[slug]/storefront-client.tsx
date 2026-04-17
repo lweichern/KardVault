@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import type { StorefrontItem } from "./page";
+import { useStorefrontAnalytics } from "@/hooks/use-storefront-analytics";
 
 interface VendorInfo {
+  id: string;
   displayName: string;
   bio: string | null;
   profileImageUrl: string | null;
@@ -30,6 +32,32 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
   const [activeSet, setActiveSet] = useState<string | null>(null);
   const [layout, setLayout] = useState<"list" | "grid">("list");
 
+  const { logCardView, logSearch } = useStorefrontAnalytics(vendor.id);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const cardRefCallback = useCallback(
+    (node: Element | null, cardId: string) => {
+      if (!node) return;
+      if (!observerRef.current) {
+        observerRef.current = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                const id = (entry.target as HTMLElement).dataset.cardId;
+                if (id) logCardView(id);
+              }
+            });
+          },
+          { threshold: 0.5 }
+        );
+      }
+      (node as HTMLElement).dataset.cardId = cardId;
+      observerRef.current.observe(node);
+    },
+    [logCardView]
+  );
+
   const setNames = useMemo(() => {
     const sets = new Set(items.map((item) => item.card.set_name));
     return Array.from(sets).sort();
@@ -48,6 +76,16 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
       return matchesSearch && matchesSet;
     });
   }, [items, searchQuery, activeSet]);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+    const timer = setTimeout(() => {
+      logSearch(trimmed, filteredItems.length);
+    }, 600);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filteredItems.length]);
 
   const totalCards = items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -241,6 +279,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                 href={cardWhatsAppUrl(item)}
                 target="_blank"
                 rel="noopener noreferrer"
+                ref={(node) => cardRefCallback(node, item.card.id)}
                 className="flex items-center gap-3 bg-storefront-surface rounded-xl p-3 border border-storefront-border hover:border-primary-400/30 transition-colors"
               >
                 {item.card.image_small ? (
@@ -296,6 +335,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                 href={cardWhatsAppUrl(item)}
                 target="_blank"
                 rel="noopener noreferrer"
+                ref={(node) => cardRefCallback(node, item.card.id)}
                 className="bg-storefront-surface rounded-xl border border-storefront-border hover:border-primary-400/30 transition-colors overflow-hidden"
               >
                 {item.card.image_small ? (

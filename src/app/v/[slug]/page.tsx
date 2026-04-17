@@ -74,6 +74,7 @@ export default async function StorefrontPage({ params }: PageProps) {
   return (
     <StorefrontClient
       vendor={{
+        id: vendor.id,
         displayName: vendor.display_name,
         bio: vendor.bio,
         profileImageUrl: vendor.profile_image_url,
