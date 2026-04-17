@@ -175,16 +175,21 @@ export function useEventActions() {
   async function searchCardsAtEvent(eventId: string, query: string) {
     const { data: vendorRows } = await db
       .from("event_vendors")
-      .select("vendor_id")
+      .select("vendor_id, booth_info")
       .eq("event_id", eventId);
 
     if (!vendorRows || vendorRows.length === 0) return [];
 
-    const vendorIds = (vendorRows as { vendor_id: string }[]).map((v) => v.vendor_id);
+    type EVRow = { vendor_id: string; booth_info: string | null };
+    const evRows = vendorRows as EVRow[];
+    const vendorIds = evRows.map((v) => v.vendor_id);
+    const boothMap = new Map(evRows.map((v) => [v.vendor_id, v.booth_info]));
 
     const { data, error } = await db
       .from("inventory")
-      .select("card_id, vendor_id, quantity, card:cards(name, set_name, card_number, image_small), vendor:vendors(display_name, slug)")
+      .select(
+        "card_id, vendor_id, quantity, card:cards(name, set_name, card_number, image_small, market_price_rm), vendor:vendors(display_name, slug, profile_image_url)"
+      )
       .in("vendor_id", vendorIds)
       .ilike("card.name", `%${query}%`)
       .not("card", "is", null)
@@ -196,24 +201,49 @@ export function useEventActions() {
       card_id: string;
       vendor_id: string;
       quantity: number;
-      card: { name: string; set_name: string; card_number: string; image_small: string | null };
-      vendor: { display_name: string; slug: string };
+      card: {
+        name: string;
+        set_name: string;
+        card_number: string;
+        image_small: string | null;
+        market_price_rm: number | null;
+      };
+      vendor: {
+        display_name: string;
+        slug: string;
+        profile_image_url: string | null;
+      };
     };
 
-    const grouped = new Map<string, {
-      cardName: string;
-      setName: string;
-      cardNumber: string;
-      imageSmall: string | null;
-      vendors: { displayName: string; slug: string }[];
-    }>();
+    const grouped = new Map<
+      string,
+      {
+        cardName: string;
+        setName: string;
+        cardNumber: string;
+        imageSmall: string | null;
+        marketPriceRm: number | null;
+        vendors: {
+          displayName: string;
+          slug: string;
+          profileImageUrl: string | null;
+          boothInfo: string | null;
+        }[];
+      }
+    >();
 
     for (const row of (data ?? []) as RawRow[]) {
       if (!row.card) continue;
       const existing = grouped.get(row.card_id);
+      const vendorEntry = {
+        displayName: row.vendor.display_name,
+        slug: row.vendor.slug,
+        profileImageUrl: row.vendor.profile_image_url,
+        boothInfo: boothMap.get(row.vendor_id) ?? null,
+      };
       if (existing) {
         if (!existing.vendors.some((v) => v.slug === row.vendor.slug)) {
-          existing.vendors.push({ displayName: row.vendor.display_name, slug: row.vendor.slug });
+          existing.vendors.push(vendorEntry);
         }
       } else {
         grouped.set(row.card_id, {
@@ -221,7 +251,8 @@ export function useEventActions() {
           setName: row.card.set_name,
           cardNumber: row.card.card_number,
           imageSmall: row.card.image_small,
-          vendors: [{ displayName: row.vendor.display_name, slug: row.vendor.slug }],
+          marketPriceRm: row.card.market_price_rm,
+          vendors: [vendorEntry],
         });
       }
     }
@@ -229,5 +260,70 @@ export function useEventActions() {
     return Array.from(grouped.values());
   }
 
-  return { createEvent, findSimilarEvents, joinEvent, leaveEvent, updateBoothInfo, flagEvent, searchCardsAtEvent };
+  async function searchCardAcrossEvents(cardName: string) {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: events } = await db
+      .from("events")
+      .select("id, name, date, city, end_date")
+      .is("deleted_at", null)
+      .gte("date", today)
+      .order("date", { ascending: true });
+
+    if (!events || events.length === 0) return [];
+
+    type EventRow = {
+      id: string;
+      name: string;
+      date: string;
+      city: string;
+      end_date: string | null;
+    };
+    const eventRows = events as EventRow[];
+    const eventIds = eventRows.map((e) => e.id);
+
+    const { data: evVendors } = await db
+      .from("event_vendors")
+      .select("event_id, vendor_id")
+      .in("event_id", eventIds);
+
+    if (!evVendors || evVendors.length === 0) return [];
+
+    type EVRow2 = { event_id: string; vendor_id: string };
+    const evVendorRows = evVendors as EVRow2[];
+    const allVendorIds = [...new Set(evVendorRows.map((v) => v.vendor_id))];
+
+    const { data: invData } = await db
+      .from("inventory")
+      .select("vendor_id, card:cards(name)")
+      .in("vendor_id", allVendorIds)
+      .ilike("card.name", `%${cardName}%`)
+      .not("card", "is", null);
+
+    if (!invData) return [];
+
+    type InvRow = { vendor_id: string; card: { name: string } };
+    const vendorsWithCard = new Set(
+      (invData as InvRow[]).map((r) => r.vendor_id)
+    );
+
+    const vendorsByEvent = new Map<string, number>();
+    for (const ev of evVendorRows) {
+      if (vendorsWithCard.has(ev.vendor_id)) {
+        vendorsByEvent.set(
+          ev.event_id,
+          (vendorsByEvent.get(ev.event_id) ?? 0) + 1
+        );
+      }
+    }
+
+    return eventRows
+      .filter((e) => vendorsByEvent.has(e.id))
+      .map((e) => ({
+        event: { id: e.id, name: e.name, date: e.date, city: e.city },
+        vendorCount: vendorsByEvent.get(e.id)!,
+      }));
+  }
+
+  return { createEvent, findSimilarEvents, joinEvent, leaveEvent, updateBoothInfo, flagEvent, searchCardsAtEvent, searchCardAcrossEvents };
 }
