@@ -338,6 +338,74 @@ export type Database = {
           },
         ];
       };
+      storefront_views: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          card_id: string;
+          viewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          vendor_id: string;
+          card_id: string;
+          viewed_at?: string;
+        };
+        Update: {
+          id?: string;
+          vendor_id?: string;
+          card_id?: string;
+          viewed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "storefront_views_vendor_id_fkey";
+            columns: ["vendor_id"];
+            isOneToOne: false;
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "storefront_views_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      storefront_searches: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          query: string;
+          results_count: number;
+          searched_at: string;
+        };
+        Insert: {
+          id?: string;
+          vendor_id: string;
+          query: string;
+          results_count?: number;
+          searched_at?: string;
+        };
+        Update: {
+          id?: string;
+          vendor_id?: string;
+          query?: string;
+          results_count?: number;
+          searched_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "storefront_searches_vendor_id_fkey";
+            columns: ["vendor_id"];
+            isOneToOne: false;
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       public_vendors: {
