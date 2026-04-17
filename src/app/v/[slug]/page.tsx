@@ -77,6 +77,7 @@ export default async function StorefrontPage({ params }: PageProps) {
         displayName: vendor.display_name,
         bio: vendor.bio,
         profileImageUrl: vendor.profile_image_url,
+        bannerImageUrl: vendor.banner_image_url,
         tier: vendor.tier,
         whatsappNumber,
       }}

@@ -66,5 +66,49 @@ export function useVendor(userId: string | undefined) {
     return data as Vendor;
   }
 
-  return { vendor, loading, createVendor, refresh: fetchVendor };
+  async function updateVendor(params: {
+    displayName?: string;
+    whatsappNumber?: string;
+    bio?: string | null;
+    profileImageUrl?: string | null;
+    bannerImageUrl?: string | null;
+  }) {
+    if (!userId) throw new Error("Not authenticated");
+
+    const updates: Record<string, unknown> = {};
+    if (params.displayName !== undefined) updates.display_name = params.displayName;
+    if (params.whatsappNumber !== undefined) updates.whatsapp_number = params.whatsappNumber;
+    if (params.bio !== undefined) updates.bio = params.bio;
+    if (params.profileImageUrl !== undefined) updates.profile_image_url = params.profileImageUrl;
+    if (params.bannerImageUrl !== undefined) updates.banner_image_url = params.bannerImageUrl;
+
+    const { error } = await db
+      .from("vendors")
+      .update(updates)
+      .eq("id", userId);
+
+    if (error) throw error;
+    await fetchVendor();
+  }
+
+  async function uploadImage(file: File, type: "profile" | "banner"): Promise<string> {
+    if (!userId) throw new Error("Not authenticated");
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${userId}/${type}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("vendor-assets")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("vendor-assets")
+      .getPublicUrl(path);
+
+    return data.publicUrl;
+  }
+
+  return { vendor, loading, createVendor, updateVendor, uploadImage, refresh: fetchVendor };
 }

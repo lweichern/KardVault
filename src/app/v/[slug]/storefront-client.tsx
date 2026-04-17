@@ -7,6 +7,7 @@ interface VendorInfo {
   displayName: string;
   bio: string | null;
   profileImageUrl: string | null;
+  bannerImageUrl: string | null;
   tier: "free" | "pro";
   whatsappNumber: string;
 }
@@ -77,12 +78,32 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
 
   return (
     <div className="min-h-screen bg-storefront-bg">
-      <div className="max-w-lg mx-auto px-4 py-6">
-        {/* Vendor header */}
-        <div className="flex flex-col items-center mb-5">
-          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary-400 text-white font-bold text-lg mb-2">
-            {initials}
+      <div className="max-w-lg mx-auto">
+        {/* Banner */}
+        {vendor.bannerImageUrl && (
+          <div className="w-full h-32 overflow-hidden">
+            <img
+              src={vendor.bannerImageUrl}
+              alt=""
+              className="w-full h-full object-cover"
+            />
           </div>
+        )}
+
+      <div className="px-4 py-6">
+        {/* Vendor header */}
+        <div className={`flex flex-col items-center mb-5 ${vendor.bannerImageUrl ? "-mt-12" : ""}`}>
+          {vendor.profileImageUrl ? (
+            <img
+              src={vendor.profileImageUrl}
+              alt={vendor.displayName}
+              className={`w-16 h-16 rounded-full object-cover mb-2 ${vendor.bannerImageUrl ? "border-4 border-storefront-bg" : ""}`}
+            />
+          ) : (
+            <div className={`flex items-center justify-center w-16 h-16 rounded-full bg-primary-400 text-white font-bold text-lg mb-2 ${vendor.bannerImageUrl ? "border-4 border-storefront-bg" : ""}`}>
+              {initials}
+            </div>
+          )}
           <h1 className="text-storefront-text font-bold text-base">
             {vendor.displayName}
           </h1>
@@ -316,11 +337,14 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 pb-4">
-          <p className="text-storefront-powered-by text-[11px]">
-            Powered by KardVault
-          </p>
-        </div>
+        {vendor.tier === "free" && (
+          <div className="text-center mt-8 pb-4">
+            <p className="text-storefront-powered-by text-[11px]">
+              Powered by KardVault
+            </p>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );

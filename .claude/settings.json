@@ -28,7 +28,15 @@
       "Bash(git checkout *)",
       "Bash(npm test *)",
       "Bash(git log *)",
-      "Bash(node -e \"console.log\\(require\\('papaparse'\\).parse\\('a,b\\\\n1,2', {header: true}\\).data\\)\")"
+      "Bash(node -e \"console.log\\(require\\('papaparse'\\).parse\\('a,b\\\\n1,2', {header: true}\\).data\\)\")",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(node -e ' *)",
+      "Bash(xxd /Users/weichernlim/Documents/KadVault/src/types/database.ts)",
+      "Bash(mkdir -p /Users/weichernlim/Documents/KadVault/src/app/browse/events/\\\\[id\\\\])",
+      "Bash(mv /Users/weichernlim/Documents/KadVault/src/app/events/\\\\[id\\\\]/page.tsx /Users/weichernlim/Documents/KadVault/src/app/browse/events/\\\\[id\\\\]/page.tsx)",
+      "Bash(rmdir /Users/weichernlim/Documents/KadVault/src/app/events/\\\\[id\\\\])"
     ],
     "additionalDirectories": [
       "/Users/weichernlim/Documents/KadVault/src/app/v",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useDashboard,
@@ -44,9 +45,20 @@ export default function DashboardPage() {
           <span className="text-text-primary">Kad</span>
           <span className="text-primary-400">Vault</span>
         </h1>
-        <span className="text-xs font-medium text-badge-text bg-badge-bg px-2.5 py-1 rounded-full">
-          PRO
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/storefront"
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-bg-surface border border-border-default"
+            aria-label="Storefront"
+          >
+            <svg className="w-4.5 h-4.5 text-text-secondary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+            </svg>
+          </Link>
+          <span className="text-xs font-medium text-badge-text bg-badge-bg px-2.5 py-1 rounded-full">
+            PRO
+          </span>
+        </div>
       </header>
 
       {d.loading ? (
