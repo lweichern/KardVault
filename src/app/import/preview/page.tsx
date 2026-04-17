@@ -28,6 +28,16 @@ export default function PreviewPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(false);
+  const [currentCount, setCurrentCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!vendor) return;
+    supabase
+      .from("inventory")
+      .select("id", { count: "exact", head: true })
+      .eq("vendor_id", vendor.id)
+      .then(({ count }) => setCurrentCount(count ?? 0));
+  }, [vendor, supabase]);
 
   useEffect(() => {
     if (!importId) {
@@ -66,6 +76,12 @@ export default function PreviewPage() {
     );
   }, [state]);
 
+  const isFreeTier = vendor?.tier === "free";
+  const FREE_CAP = 50;
+  const remainingCapacity = isFreeTier && currentCount !== null ? Math.max(0, FREE_CAP - currentCount) : Infinity;
+  const willTruncate = counts.matched > remainingCapacity;
+  const toImportCount = Math.min(counts.matched, remainingCapacity);
+
   const hasSellPriceColumn = state?.mappings.some((m) => m.field === "sell_price") ?? false;
 
   const setRule = (rule: ImportSessionState["batchPricingRule"]) => {
@@ -86,9 +102,9 @@ export default function PreviewPage() {
     setImporting(true);
     setError(null);
     try {
-      const matched = state.matchResults.filter(
-        (r) => r.status === "matched" && r.selectedCardId
-      );
+      const matched = state.matchResults
+        .filter((r) => r.status === "matched" && r.selectedCardId)
+        .slice(0, remainingCapacity);
       const rows = matched.map((r) => {
         const cand = r.candidates.find((c) => c.id === r.selectedCardId) ?? r.candidates[0];
         const sellPrice = r.mappedFields.sellPriceRm ?? computeSellPrice(cand.marketPriceRm, state.batchPricingRule);
@@ -180,6 +196,17 @@ export default function PreviewPage() {
         </div>
       )}
 
+      {willTruncate && (
+        <div className="mt-4 rounded-lg border border-primary-600 bg-primary-800/40 p-3 text-sm">
+          <div className="mb-1 font-medium text-primary-200">Free tier holds 50 cards</div>
+          <div className="text-xs text-text-secondary">
+            You have {currentCount} cards. Importing will add the first {remainingCapacity} matched cards.
+            {" "}
+            <Link href="/upgrade" className="underline">Upgrade to Pro</Link> for unlimited.
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mt-4 rounded-lg border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
           {error}
@@ -187,11 +214,11 @@ export default function PreviewPage() {
       )}
 
       <button
-        disabled={importing || counts.matched === 0}
+        disabled={importing || toImportCount === 0}
         onClick={handleImport}
         className="mt-6 w-full rounded-lg bg-primary-400 py-3 font-medium text-text-on-primary disabled:opacity-40"
       >
-        {importing ? "Importing…" : `Import ${counts.matched} matched cards`}
+        {importing ? "Importing…" : `Import ${toImportCount} matched cards`}
       </button>
 
       <p className="mt-3 text-center text-xs text-text-muted">
