@@ -39,7 +39,7 @@ export default function VendorLayout({
   if (loading || !user) {
     return (
       <>
-        <main className="flex-1 pb-20 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}>
           <p className="text-text-muted text-sm">Loading...</p>
         </main>
         <BottomNav />
@@ -51,7 +51,7 @@ export default function VendorLayout({
   if (!vendor) {
     return (
       <>
-        <main className="flex-1 pb-20">
+        <main className="flex-1" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}>
           <VendorOnboarding onCreate={createVendor} />
         </main>
         <BottomNav />
@@ -62,7 +62,7 @@ export default function VendorLayout({
   return (
     <>
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      <main className="flex-1 pb-20">{children}</main>
+      <main className="flex-1" style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}>{children}</main>
       <BottomNav />
     </>
   );
