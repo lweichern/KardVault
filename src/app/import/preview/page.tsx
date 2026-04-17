@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
@@ -15,6 +15,14 @@ import type { ImportSessionState, MatchResult } from "@/lib/import/types";
 type Filter = "all" | "matched" | "uncertain" | "not_found";
 
 export default function PreviewPage() {
+  return (
+    <Suspense>
+      <PreviewContent />
+    </Suspense>
+  );
+}
+
+function PreviewContent() {
   const router = useRouter();
   const params = useSearchParams();
   const importId = params.get("id");
@@ -123,7 +131,9 @@ export default function PreviewPage() {
         setError("No matched rows to import.");
         return;
       }
-      const { error: insertError } = await supabase.from("inventory").upsert(rows, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+      const { error: insertError } = await db.from("inventory").upsert(rows, {
         onConflict: "vendor_id,card_id,condition,grading_company,grade",
       });
       if (insertError) throw insertError;

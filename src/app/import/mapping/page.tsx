@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { loadImportState, saveImportState } from "@/lib/import/session-state";
 import { ColumnMappingRow } from "@/components/import/column-mapping-row";
-import type { ColumnMapping, ImportSessionState, KardVaultField } from "@/lib/import/types";
+import type { ImportSessionState, KardVaultField } from "@/lib/import/types";
 
-export default function MappingPage() {
+function MappingContent() {
   const router = useRouter();
   const params = useSearchParams();
   const importId = params.get("id");
@@ -91,5 +91,13 @@ export default function MappingPage() {
         Match {state.parsedFile.rowCount} cards against database
       </button>
     </div>
+  );
+}
+
+export default function MappingPage() {
+  return (
+    <Suspense>
+      <MappingContent />
+    </Suspense>
   );
 }
