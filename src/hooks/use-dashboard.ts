@@ -68,6 +68,17 @@ export interface DashboardData {
   longestHeldCard: TopCard | null;
   biggestPriceRise: TopCard | null;
 
+  // Buyer Interest Signals
+  mostViewedCards: { card: Card; viewCount: number }[];
+  viewedButUnsold: { card: Card; viewCount: number }[];
+  searchMisses: { query: string; searchCount: number }[];
+
+  // Today's sales (for report)
+  todaySalesCount: number;
+  todayRevenue: number;
+  todayAvgMarginPct: number | null;
+  todayBestSeller: { card: Card; quantity: number } | null;
+
   loading: boolean;
 }
 
@@ -148,6 +159,13 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
     mostSoldCard: null,
     longestHeldCard: null,
     biggestPriceRise: null,
+    mostViewedCards: [],
+    viewedButUnsold: [],
+    searchMisses: [],
+    todaySalesCount: 0,
+    todayRevenue: 0,
+    todayAvgMarginPct: null,
+    todayBestSeller: null,
   });
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -358,6 +376,95 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
         })()
       : null;
 
+    // --- Buyer Interest Signals ---
+    const weekAgoISO = weekAgo;
+
+    // Most viewed cards (top 5)
+    const { data: viewsRaw } = await (supabase as any)
+      .from("storefront_views")
+      .select("card_id, card:cards(*)")
+      .eq("vendor_id", vendorId)
+      .gte("viewed_at", weekAgoISO);
+
+    type ViewRow = { card_id: string; card: Card };
+    const viewRows = (viewsRaw ?? []) as ViewRow[];
+    const viewCountMap = new Map<string, { card: Card; count: number }>();
+    for (const v of viewRows) {
+      if (!v.card) continue;
+      const existing = viewCountMap.get(v.card_id);
+      if (existing) {
+        existing.count++;
+      } else {
+        viewCountMap.set(v.card_id, { card: v.card, count: 1 });
+      }
+    }
+    const mostViewedCards = [...viewCountMap.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((v) => ({ card: v.card, viewCount: v.count }));
+
+    // Viewed but unsold
+    const thisWeekSellCardIds = new Set(
+      sellRows
+        .filter((s) => s.created_at >= weekAgoISO)
+        .map((s) => s.card_id)
+    );
+    const viewedButUnsold = [...viewCountMap.values()]
+      .filter((v) => !thisWeekSellCardIds.has(v.card.id))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((v) => ({ card: v.card, viewCount: v.count }));
+
+    // Search misses
+    const { data: searchesRaw } = await (supabase as any)
+      .from("storefront_searches")
+      .select("query")
+      .eq("vendor_id", vendorId)
+      .eq("results_count", 0)
+      .gte("searched_at", weekAgoISO);
+
+    type SearchRow = { query: string };
+    const searchRows2 = (searchesRaw ?? []) as SearchRow[];
+    const searchCountMap = new Map<string, number>();
+    for (const s of searchRows2) {
+      const q = s.query.toLowerCase().trim();
+      searchCountMap.set(q, (searchCountMap.get(q) ?? 0) + 1);
+    }
+    const searchMisses = [...searchCountMap.entries()]
+      .map(([query, searchCount]) => ({ query, searchCount }))
+      .sort((a, b) => b.searchCount - a.searchCount)
+      .slice(0, 5);
+
+    // --- Today's sales (for report) ---
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartISO = todayStart.toISOString();
+
+    const todaySells = sellRows.filter((s) => s.created_at >= todayStartISO);
+    const todaySalesCount = todaySells.reduce((s, r) => s + r.quantity, 0);
+    const todayRevenue = todaySells.reduce(
+      (s, r) => s + r.price_rm * r.quantity,
+      0
+    );
+    const todayAvgMarginPct =
+      todayRevenue > 0 && totalRevenue > 0 ? avgMarginPct : null;
+
+    const todayCardQty = new Map<string, { card: Card; quantity: number }>();
+    for (const s of todaySells) {
+      const existing = todayCardQty.get(s.card_id);
+      if (existing) {
+        existing.quantity += s.quantity;
+      } else {
+        todayCardQty.set(s.card_id, { card: s.card, quantity: s.quantity });
+      }
+    }
+    const todayBestSeller =
+      todayCardQty.size > 0
+        ? [...todayCardQty.values()].reduce((a, b) =>
+            a.quantity >= b.quantity ? a : b
+          )
+        : null;
+
     setData({
       inventoryCount,
       inventoryDelta: null, // would need historical snapshots
@@ -378,6 +485,13 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
       mostSoldCard,
       longestHeldCard,
       biggestPriceRise,
+      mostViewedCards,
+      viewedButUnsold,
+      searchMisses,
+      todaySalesCount,
+      todayRevenue,
+      todayAvgMarginPct,
+      todayBestSeller,
     });
     setLoading(false);
   }, [vendorId, supabase]);
