@@ -48,95 +48,223 @@ export type Database = {
         };
         Relationships: [];
       };
-      cards: {
+      card_sets: {
         Row: {
           id: string;
           name: string;
-          set_id: string;
-          set_name: string;
-          card_number: string;
-          rarity: string | null;
-          image_small: string | null;
-          image_large: string | null;
-          supertype: string | null;
-          subtypes: string[] | null;
-          tcgplayer_market_price: number | null;
-          market_price_rm: number | null;
-          price_updated_at: string;
+          series: string;
+          printed_total: number;
+          total: number;
+          ptcgo_code: string | null;
+          release_date: string;
+          image_symbol: string | null;
+          image_logo: string | null;
+          updated_at: string;
         };
         Insert: {
           id: string;
           name: string;
-          set_id: string;
-          set_name: string;
-          card_number: string;
-          rarity?: string | null;
-          image_small?: string | null;
-          image_large?: string | null;
-          supertype?: string | null;
-          subtypes?: string[] | null;
-          tcgplayer_market_price?: number | null;
-          market_price_rm?: number | null;
-          price_updated_at?: string;
+          series: string;
+          printed_total: number;
+          total: number;
+          ptcgo_code?: string | null;
+          release_date: string;
+          image_symbol?: string | null;
+          image_logo?: string | null;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
-          set_id?: string;
-          set_name?: string;
-          card_number?: string;
-          rarity?: string | null;
-          image_small?: string | null;
-          image_large?: string | null;
-          supertype?: string | null;
-          subtypes?: string[] | null;
-          tcgplayer_market_price?: number | null;
-          market_price_rm?: number | null;
-          price_updated_at?: string;
+          series?: string;
+          printed_total?: number;
+          total?: number;
+          ptcgo_code?: string | null;
+          release_date?: string;
+          image_symbol?: string | null;
+          image_logo?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
+      };
+      cards: {
+        Row: {
+          id: string;
+          name: string;
+          supertype: string | null;
+          subtypes: string[] | null;
+          hp: string | null;
+          types: string[] | null;
+          evolves_from: string | null;
+          evolves_to: string[] | null;
+          set_id: string;
+          set_name: string;
+          set_series: string | null;
+          number: string;
+          rarity: string | null;
+          artist: string | null;
+          attacks: Json | null;
+          weaknesses: Json | null;
+          resistances: Json | null;
+          retreat_cost: string[] | null;
+          converted_retreat_cost: number | null;
+          rules: string[] | null;
+          abilities: Json | null;
+          flavor_text: string | null;
+          image_small: string | null;
+          image_large: string | null;
+          national_pokedex_numbers: number[] | null;
+          legality_standard: string | null;
+          legality_expanded: string | null;
+          legality_unlimited: string | null;
+          regulation_mark: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          supertype?: string | null;
+          subtypes?: string[] | null;
+          hp?: string | null;
+          types?: string[] | null;
+          evolves_from?: string | null;
+          evolves_to?: string[] | null;
+          set_id: string;
+          set_name: string;
+          set_series?: string | null;
+          number: string;
+          rarity?: string | null;
+          artist?: string | null;
+          attacks?: Json | null;
+          weaknesses?: Json | null;
+          resistances?: Json | null;
+          retreat_cost?: string[] | null;
+          converted_retreat_cost?: number | null;
+          rules?: string[] | null;
+          abilities?: Json | null;
+          flavor_text?: string | null;
+          image_small?: string | null;
+          image_large?: string | null;
+          national_pokedex_numbers?: number[] | null;
+          legality_standard?: string | null;
+          legality_expanded?: string | null;
+          legality_unlimited?: string | null;
+          regulation_mark?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          supertype?: string | null;
+          subtypes?: string[] | null;
+          hp?: string | null;
+          types?: string[] | null;
+          evolves_from?: string | null;
+          evolves_to?: string[] | null;
+          set_id?: string;
+          set_name?: string;
+          set_series?: string | null;
+          number?: string;
+          rarity?: string | null;
+          artist?: string | null;
+          attacks?: Json | null;
+          weaknesses?: Json | null;
+          resistances?: Json | null;
+          retreat_cost?: string[] | null;
+          converted_retreat_cost?: number | null;
+          rules?: string[] | null;
+          abilities?: Json | null;
+          flavor_text?: string | null;
+          image_small?: string | null;
+          image_large?: string | null;
+          national_pokedex_numbers?: number[] | null;
+          legality_standard?: string | null;
+          legality_expanded?: string | null;
+          legality_unlimited?: string | null;
+          regulation_mark?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cards_set_id_fkey";
+            columns: ["set_id"];
+            isOneToOne: false;
+            referencedRelation: "card_sets";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       inventory: {
         Row: {
           id: string;
           vendor_id: string;
-          card_id: string;
+          card_id: string | null;
+          manual_card_name: string | null;
+          manual_card_set: string | null;
+          manual_card_number: string | null;
           condition: "NM" | "LP" | "MP" | "HP" | "DMG";
+          price_myr: number | null;
           quantity: number;
-          buy_price_rm: number | null;
-          sell_price_rm: number;
-          condition_photo_url: string | null;
+          photos: string[] | null;
+          is_graded: boolean;
           grading_company: string | null;
           grade: string | null;
-          listed_at: string;
+          subgrades: Json | null;
+          cert_number: string | null;
+          deal_method: "COD" | "SHIPPING" | "BOTH";
+          cod_location: string | null;
+          status: "ACTIVE" | "SOLD" | "REMOVED" | "RESERVED";
+          scan_source: string | null;
+          created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           vendor_id: string;
-          card_id: string;
+          card_id?: string | null;
+          manual_card_name?: string | null;
+          manual_card_set?: string | null;
+          manual_card_number?: string | null;
           condition?: "NM" | "LP" | "MP" | "HP" | "DMG";
+          price_myr?: number | null;
           quantity?: number;
-          buy_price_rm?: number | null;
-          sell_price_rm: number;
-          condition_photo_url?: string | null;
+          photos?: string[] | null;
+          is_graded?: boolean;
           grading_company?: string | null;
           grade?: string | null;
-          listed_at?: string;
+          subgrades?: Json | null;
+          cert_number?: string | null;
+          deal_method?: "COD" | "SHIPPING" | "BOTH";
+          cod_location?: string | null;
+          status?: "ACTIVE" | "SOLD" | "REMOVED" | "RESERVED";
+          scan_source?: string | null;
+          created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           vendor_id?: string;
-          card_id?: string;
+          card_id?: string | null;
+          manual_card_name?: string | null;
+          manual_card_set?: string | null;
+          manual_card_number?: string | null;
           condition?: "NM" | "LP" | "MP" | "HP" | "DMG";
+          price_myr?: number | null;
           quantity?: number;
-          buy_price_rm?: number | null;
-          sell_price_rm?: number;
-          condition_photo_url?: string | null;
+          photos?: string[] | null;
+          is_graded?: boolean;
           grading_company?: string | null;
           grade?: string | null;
-          listed_at?: string;
+          subgrades?: Json | null;
+          cert_number?: string | null;
+          deal_method?: "COD" | "SHIPPING" | "BOTH";
+          cod_location?: string | null;
+          status?: "ACTIVE" | "SOLD" | "REMOVED" | "RESERVED";
+          scan_source?: string | null;
+          created_at?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -160,7 +288,7 @@ export type Database = {
         Row: {
           id: string;
           vendor_id: string;
-          card_id: string;
+          card_id: string | null;
           type: "buy" | "sell";
           quantity: number;
           price_rm: number;
@@ -172,7 +300,7 @@ export type Database = {
         Insert: {
           id?: string;
           vendor_id: string;
-          card_id: string;
+          card_id?: string | null;
           type: "buy" | "sell";
           quantity?: number;
           price_rm: number;
@@ -184,7 +312,7 @@ export type Database = {
         Update: {
           id?: string;
           vendor_id?: string;
-          card_id?: string;
+          card_id?: string | null;
           type?: "buy" | "sell";
           quantity?: number;
           price_rm?: number;
@@ -204,6 +332,73 @@ export type Database = {
           {
             foreignKeyName: "transactions_card_id_fkey";
             columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scan_logs: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          scan_mode: string | null;
+          vision_model: string | null;
+          api_response: Json | null;
+          matched_card_id: string | null;
+          vendor_corrected: boolean | null;
+          corrected_card_id: string | null;
+          confidence: number | null;
+          photo_quality_score: number | null;
+          latency_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vendor_id: string;
+          scan_mode?: string | null;
+          vision_model?: string | null;
+          api_response?: Json | null;
+          matched_card_id?: string | null;
+          vendor_corrected?: boolean | null;
+          corrected_card_id?: string | null;
+          confidence?: number | null;
+          photo_quality_score?: number | null;
+          latency_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vendor_id?: string;
+          scan_mode?: string | null;
+          vision_model?: string | null;
+          api_response?: Json | null;
+          matched_card_id?: string | null;
+          vendor_corrected?: boolean | null;
+          corrected_card_id?: string | null;
+          confidence?: number | null;
+          photo_quality_score?: number | null;
+          latency_ms?: number | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scan_logs_vendor_id_fkey";
+            columns: ["vendor_id"];
+            isOneToOne: false;
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scan_logs_matched_card_id_fkey";
+            columns: ["matched_card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scan_logs_corrected_card_id_fkey";
+            columns: ["corrected_card_id"];
             isOneToOne: false;
             referencedRelation: "cards";
             referencedColumns: ["id"];
@@ -419,7 +614,16 @@ export type Database = {
         };
       };
     };
-    Functions: Record<string, never>;
+    Functions: {
+      search_cards: {
+        Args: {
+          search_query: string;
+          result_limit?: number;
+          result_offset?: number;
+        };
+        Returns: Database["public"]["Tables"]["cards"]["Row"][];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
