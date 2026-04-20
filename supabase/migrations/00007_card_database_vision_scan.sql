@@ -314,8 +314,10 @@ CREATE POLICY "Vendor reads own scan logs"
 
 -- ============================================
 -- STEP 9: also refresh match_cards function for new cards schema
--- (column card_number renamed to number)
+-- (column card_number renamed to number — must DROP first because return type changed)
 -- ============================================
+DROP FUNCTION IF EXISTS match_cards(TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION match_cards(
   p_name        TEXT,
   p_set_hint    TEXT DEFAULT NULL,

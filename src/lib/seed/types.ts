@@ -18,7 +18,7 @@ export interface RawCard {
   types?: string[];
   evolvesFrom?: string;
   evolvesTo?: string[];
-  set: { id: string; name: string; series: string };
+  set?: { id: string; name: string; series: string };
   number: string;
   rarity?: string;
   artist?: string;
@@ -36,7 +36,7 @@ export interface RawCard {
   rules?: string[];
   abilities?: { name: string; text: string; type: string }[];
   flavorText?: string;
-  images: { small: string; large: string };
+  images?: { small: string; large: string };
   nationalPokedexNumbers?: number[];
   legalities?: {
     standard?: string;
