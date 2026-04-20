@@ -21,10 +21,6 @@ export default function InventoryPage() {
     addToInventory,
     sellFromInventory,
     totalCards,
-    totalMarketValue,
-    totalAskingPrice,
-    totalProfit,
-    viewCounts,
   } = useInventory(user?.id);
 
   const [addCard, setAddCard] = useState<Card | null>(null);
@@ -33,10 +29,11 @@ export default function InventoryPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   const isFreeTier = vendor?.tier === "free";
+  void isFreeTier; // referenced via vendor data, suppress unused warning
 
   const handleExportCSV = useCallback(() => {
     if (items.length === 0) return;
-    const headers = ["Card name", "Set", "Card number", "Condition", "Quantity", "Sell price", "Buy price", "Grading"];
+    const headers = ["Card name", "Set", "Card number", "Condition", "Quantity", "Price (RM)", "Grading"];
     const escapeField = (val: string) => {
       if (val.includes(",") || val.includes('"') || val.includes("\n")) {
         return `"${val.replace(/"/g, '""')}"`;
@@ -44,15 +41,18 @@ export default function InventoryPage() {
       return val;
     };
     const rows = items.map((item) => {
+      const name = item.card?.name ?? item.manual_card_name ?? "";
+      const setName = item.card?.set_name ?? item.manual_card_set ?? "";
+      const number = item.card?.number ?? item.manual_card_number ?? "";
+      const priceRm = item.price_myr != null ? (item.price_myr / 100).toFixed(2) : "";
       const grading = item.grading_company && item.grade ? `${item.grading_company} ${item.grade}` : "";
       return [
-        escapeField(item.card.name),
-        escapeField(item.card.set_name),
-        escapeField(item.card.card_number),
+        escapeField(name),
+        escapeField(setName),
+        escapeField(number),
         item.condition,
         String(item.quantity),
-        item.sell_price_rm.toFixed(2),
-        item.buy_price_rm != null ? item.buy_price_rm.toFixed(2) : "",
+        priceRm,
         grading,
       ].join(",");
     });
@@ -68,16 +68,24 @@ export default function InventoryPage() {
   }, [items, vendor?.slug]);
 
   const filtered = filter
-    ? items.filter(
-        (i) =>
-          i.card.name.toLowerCase().includes(filter.toLowerCase()) ||
-          i.card.set_name.toLowerCase().includes(filter.toLowerCase()) ||
-          i.card.card_number.toLowerCase().includes(filter.toLowerCase())
-      )
+    ? items.filter((i) => {
+        const name = i.card?.name ?? i.manual_card_name ?? "";
+        const setName = i.card?.set_name ?? i.manual_card_set ?? "";
+        const number = i.card?.number ?? i.manual_card_number ?? "";
+        const q = filter.toLowerCase();
+        return (
+          name.toLowerCase().includes(q) ||
+          setName.toLowerCase().includes(q) ||
+          number.toLowerCase().includes(q)
+        );
+      })
     : items;
 
-  const setNames = [...new Set(items.map((i) => i.card.set_name))].sort();
-  const potentialProfit = totalAskingPrice - totalMarketValue;
+  const setNames = [
+    ...new Set(
+      items.map((i) => i.card?.set_name ?? i.manual_card_set ?? "").filter(Boolean)
+    ),
+  ].sort();
 
   return (
     <div className="px-4 pt-6">
@@ -92,39 +100,6 @@ export default function InventoryPage() {
         </span>
       </header>
 
-      {/* 2. Summary row (3 columns): Total value, Your price, Potential */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="bg-bg-surface rounded-xl p-2.5">
-          <p className="text-text-muted text-[9px] uppercase tracking-wider">
-            Total Value
-          </p>
-          <p className="text-text-primary text-[15px] font-bold mt-0.5">
-            RM {totalMarketValue.toLocaleString("en", { maximumFractionDigits: 0 })}
-          </p>
-        </div>
-        <div className="bg-bg-surface rounded-xl p-2.5">
-          <p className="text-text-muted text-[9px] uppercase tracking-wider">
-            Your Price
-          </p>
-          <p className="text-text-primary text-[15px] font-bold mt-0.5">
-            RM {totalAskingPrice.toLocaleString("en", { maximumFractionDigits: 0 })}
-          </p>
-        </div>
-        <div className="bg-bg-surface rounded-xl p-2.5">
-          <p className="text-text-muted text-[9px] uppercase tracking-wider">
-            Potential
-          </p>
-          <p
-            className={`text-[15px] font-bold mt-0.5 ${
-              potentialProfit >= 0 ? "text-success" : "text-danger"
-            }`}
-          >
-            {potentialProfit >= 0 ? "+" : ""}RM{" "}
-            {Math.abs(potentialProfit).toLocaleString("en", { maximumFractionDigits: 0 })}
-          </p>
-        </div>
-      </div>
-
       {/* Add card search */}
       <div className="mb-4">
         <CardSearch
@@ -133,7 +108,7 @@ export default function InventoryPage() {
         />
       </div>
 
-      {/* 3. Action buttons row (3 buttons, equal width) */}
+      {/* 2. Action buttons row (3 buttons, equal width) */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <Link href="/import" className="flex items-center justify-center gap-1.5 h-10 bg-primary-800 text-primary-50 text-xs font-medium rounded-xl border border-primary-600">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -159,7 +134,7 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      {/* 4. Search bar with view toggle */}
+      {/* 3. Search bar with view toggle */}
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1">
           <svg
@@ -211,7 +186,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* 5. Filter chips */}
+      {/* 4. Filter chips */}
       {setNames.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-1 -mx-4 px-4 scrollbar-hide">
           <button
@@ -240,7 +215,7 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* 6 & 7. Card list / grid */}
+      {/* 5. Card list / grid */}
       {loading ? (
         <div className="bg-bg-surface rounded-xl p-4">
           <p className="text-text-muted text-sm text-center py-8">
@@ -262,7 +237,6 @@ export default function InventoryPage() {
               key={item.id}
               item={item}
               onTap={() => setSellItem(item)}
-              viewCount={viewCounts.get(item.card_id) ?? 0}
             />
           ))}
         </div>
@@ -273,12 +247,10 @@ export default function InventoryPage() {
               key={item.id}
               item={item}
               onTap={() => setSellItem(item)}
-              viewCount={viewCounts.get(item.card_id) ?? 0}
             />
           ))}
         </div>
       )}
-
 
       {/* Modals */}
       {addCard && (
@@ -315,18 +287,15 @@ function GradingBadge({ item }: { item: InventoryItem }) {
 function InventoryGridCard({
   item,
   onTap,
-  viewCount,
 }: {
   item: InventoryItem;
   onTap: () => void;
-  viewCount: number;
 }) {
-  const card = item.card;
-  const marketPrice = card.market_price_rm ?? 0;
-  const delta =
-    marketPrice > 0
-      ? ((item.sell_price_rm - marketPrice) / marketPrice) * 100
-      : 0;
+  const name = item.card?.name ?? item.manual_card_name ?? "Unknown";
+  const setName = item.card?.set_name ?? item.manual_card_set ?? "";
+  const number = item.card?.number ?? item.manual_card_number ?? "";
+  const image = item.card?.image_small;
+  const priceRm = item.price_myr != null ? item.price_myr / 100 : null;
 
   return (
     <button
@@ -335,14 +304,14 @@ function InventoryGridCard({
     >
       {/* Image */}
       <div className="relative p-3 pb-2">
-        {card.image_small ? (
+        {image ? (
           <img
-            src={card.image_small}
-            alt={card.name}
+            src={image}
+            alt={name}
             className="w-full rounded-xl group-hover:scale-[1.02] transition-transform"
           />
         ) : (
-          <div className="w-full aspect-[2/3] rounded-xl bg-bg-surface-2" />
+          <div className="w-full aspect-2/3 rounded-xl bg-bg-surface-2" />
         )}
 
         {/* Grading or condition badge — top right on image */}
@@ -364,7 +333,7 @@ function InventoryGridCard({
 
         {/* Quantity badge — top left on image */}
         {item.quantity > 1 && (
-          <span className="absolute top-4 left-4 min-w-[22px] h-[22px] flex items-center justify-center bg-primary-400 text-text-on-primary text-[10px] font-bold rounded-lg px-1">
+          <span className="absolute top-4 left-4 min-w-5.5 h-5.5 flex items-center justify-center bg-primary-400 text-text-on-primary text-[10px] font-bold rounded-lg px-1">
             +{item.quantity}
           </span>
         )}
@@ -373,43 +342,21 @@ function InventoryGridCard({
       {/* Info */}
       <div className="px-3 pb-3">
         <p className="text-text-primary text-[13px] font-semibold truncate">
-          {card.name}
+          {name}
         </p>
         <p className="text-text-muted text-[11px] truncate">
-          {card.set_name} · {card.card_number}
+          {setName}{number ? ` · ${number}` : ""}
         </p>
 
         <div className="flex items-baseline justify-between mt-2">
-          <p className="text-text-primary text-[15px] font-bold">
-            RM {item.sell_price_rm.toLocaleString("en", { maximumFractionDigits: 0 })}
-          </p>
+          {priceRm != null ? (
+            <p className="text-text-primary text-[15px] font-bold">
+              RM {priceRm.toLocaleString("en", { maximumFractionDigits: 0 })}
+            </p>
+          ) : (
+            <p className="text-text-muted text-[13px]">Price TBD</p>
+          )}
         </div>
-
-        {marketPrice > 0 && (
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-text-muted text-[10px]">
-              Mkt: RM {marketPrice.toLocaleString("en", { maximumFractionDigits: 0 })}
-            </span>
-            {Math.abs(delta) >= 1 && (
-              <span
-                className={`text-[10px] font-semibold ${
-                  delta > 0 ? "text-success" : "text-danger"
-                }`}
-              >
-                {delta > 0 ? "▲" : "▼"} {delta > 0 ? "+" : ""}{delta.toFixed(1)}%
-              </span>
-            )}
-          </div>
-        )}
-        {viewCount > 0 && (
-          <p className="text-text-muted text-[10px] mt-1 flex items-center gap-0.5">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
-            {viewCount} this week
-          </p>
-        )}
       </div>
     </button>
   );
@@ -420,18 +367,15 @@ function InventoryGridCard({
 function InventoryListCard({
   item,
   onTap,
-  viewCount,
 }: {
   item: InventoryItem;
   onTap: () => void;
-  viewCount: number;
 }) {
-  const card = item.card;
-  const marketPrice = card.market_price_rm ?? 0;
-  const delta =
-    marketPrice > 0
-      ? ((item.sell_price_rm - marketPrice) / marketPrice) * 100
-      : 0;
+  const name = item.card?.name ?? item.manual_card_name ?? "Unknown";
+  const setName = item.card?.set_name ?? item.manual_card_set ?? "";
+  const number = item.card?.number ?? item.manual_card_number ?? "";
+  const image = item.card?.image_small;
+  const priceRm = item.price_myr != null ? item.price_myr / 100 : null;
 
   return (
     <button
@@ -440,17 +384,17 @@ function InventoryListCard({
     >
       {/* Card image + quantity badge */}
       <div className="relative shrink-0">
-        {card.image_small ? (
+        {image ? (
           <img
-            src={card.image_small}
-            alt={card.name}
-            className="w-[42px] h-[58px] rounded object-cover bg-bg-surface-2"
+            src={image}
+            alt={name}
+            className="w-10.5 h-14.5 rounded object-cover bg-bg-surface-2"
           />
         ) : (
-          <div className="w-[42px] h-[58px] rounded bg-bg-surface-2" />
+          <div className="w-10.5 h-14.5 rounded bg-bg-surface-2" />
         )}
         {item.quantity > 1 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-primary-400 text-text-on-primary text-[10px] font-bold rounded-full px-1">
+          <span className="absolute -top-1.5 -right-1.5 min-w-4.5 h-4.5 flex items-center justify-center bg-primary-400 text-text-on-primary text-[10px] font-bold rounded-full px-1">
             ×{item.quantity}
           </span>
         )}
@@ -459,10 +403,10 @@ function InventoryListCard({
       {/* Card info */}
       <div className="flex-1 min-w-0">
         <p className="text-text-primary text-sm font-medium truncate">
-          {card.name}
+          {name}
         </p>
         <p className="text-text-secondary text-xs truncate">
-          {card.set_name} · {card.card_number}
+          {setName}{number ? ` · ${number}` : ""}
         </p>
         {item.grading_company ? (
           <GradingBadge item={item} />
@@ -483,35 +427,14 @@ function InventoryListCard({
         )}
       </div>
 
-      {/* Prices */}
+      {/* Price */}
       <div className="text-right shrink-0">
-        <p className="text-text-primary text-sm font-medium">
-          RM {item.sell_price_rm.toFixed(2)}
-        </p>
-        {marketPrice > 0 && (
-          <div className="flex items-center justify-end gap-1 mt-0.5">
-            <span className="text-text-muted text-[10px]">
-              RM {marketPrice.toFixed(2)}
-            </span>
-            {Math.abs(delta) >= 1 && (
-              <span
-                className={`text-[10px] font-medium ${
-                  delta > 0 ? "text-success" : "text-danger"
-                }`}
-              >
-                {delta > 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(0)}%
-              </span>
-            )}
-          </div>
-        )}
-        {viewCount > 0 && (
-          <p className="text-text-muted text-[10px] mt-0.5 flex items-center justify-end gap-0.5">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
-            {viewCount}
+        {priceRm != null ? (
+          <p className="text-text-primary text-sm font-medium">
+            RM {priceRm.toFixed(2)}
           </p>
+        ) : (
+          <p className="text-text-muted text-xs">TBD</p>
         )}
       </div>
     </button>

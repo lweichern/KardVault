@@ -13,35 +13,30 @@ interface AddCardModalProps {
   card: Card;
   onAdd: (params: {
     cardId: string;
-    sellPriceRm: number;
-    buyPriceRm?: number;
+    priceMyr?: number;
     condition: Condition;
     quantity: number;
     gradingCompany?: string;
     grade?: string;
+    subgrades?: Record<string, string>;
+    certNumber?: string;
   }) => Promise<void>;
   onClose: () => void;
 }
 
 export function AddCardModal({ card, onAdd, onClose }: AddCardModalProps) {
-  const defaultPrice = card.market_price_rm ?? 0;
-  const [sellPrice, setSellPrice] = useState(defaultPrice.toFixed(2));
-  const [buyPrice, setBuyPrice] = useState("");
+  const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
   const [quantity, setQuantity] = useState(1);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState<GradingCompany | null>(null);
   const [grade, setGrade] = useState("");
+  const [certNumber, setCertNumber] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const sell = parseFloat(sellPrice);
-    if (isNaN(sell) || sell <= 0) {
-      setError("Enter a valid sell price");
-      return;
-    }
     if (isGraded && (!gradingCompany || !grade)) {
       setError("Select a grading company and grade");
       return;
@@ -50,15 +45,17 @@ export function AddCardModal({ card, onAdd, onClose }: AddCardModalProps) {
     setSaving(true);
     setError(null);
 
+    const priceMyr = price ? Math.round(parseFloat(price) * 100) : undefined;
+
     try {
       await onAdd({
         cardId: card.id,
-        sellPriceRm: sell,
-        buyPriceRm: buyPrice ? parseFloat(buyPrice) : undefined,
+        priceMyr,
         condition,
         quantity,
         gradingCompany: isGraded ? gradingCompany ?? undefined : undefined,
         grade: isGraded ? grade || undefined : undefined,
+        certNumber: isGraded && certNumber ? certNumber : undefined,
       });
       onClose();
     } catch (err) {
@@ -87,47 +84,26 @@ export function AddCardModal({ card, onAdd, onClose }: AddCardModalProps) {
               {card.name}
             </h3>
             <p className="text-text-secondary text-xs">
-              {card.set_name} · {card.card_number}
+              {card.set_name} · {card.number}
             </p>
-            {card.market_price_rm != null && (
-              <p className="text-primary-200 text-sm font-medium mt-1">
-                Market: RM {card.market_price_rm.toFixed(2)}
-              </p>
-            )}
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Price inputs */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-text-secondary text-xs font-medium mb-1">
-                Your price (RM)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={sellPrice}
-                onChange={(e) => setSellPrice(e.target.value)}
-                className="w-full h-11 bg-bg-surface-2 text-text-primary rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-text-secondary text-xs font-medium mb-1">
-                Buy price (RM)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={buyPrice}
-                onChange={(e) => setBuyPrice(e.target.value)}
-                placeholder="Optional"
-                className="w-full h-11 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
-              />
-            </div>
+          {/* Price input — optional */}
+          <div>
+            <label className="block text-text-secondary text-xs font-medium mb-1">
+              Price (RM) — optional
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Set later"
+              className="w-full h-11 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
+            />
           </div>
 
           {/* Grading */}
@@ -139,6 +115,22 @@ export function AddCardModal({ card, onAdd, onClose }: AddCardModalProps) {
             grade={grade}
             onGradeChange={setGrade}
           />
+
+          {/* Cert number — only for graded cards */}
+          {isGraded && (
+            <div>
+              <label className="block text-text-secondary text-xs font-medium mb-1">
+                Cert number — optional
+              </label>
+              <input
+                type="text"
+                value={certNumber}
+                onChange={(e) => setCertNumber(e.target.value)}
+                placeholder="e.g. 12345678"
+                className="w-full h-11 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
+              />
+            </div>
+          )}
 
           {/* Condition — only for raw cards */}
           {!isGraded && (

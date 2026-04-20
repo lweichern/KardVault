@@ -1,12 +1,14 @@
 "use client";
 
-const GRADING_COMPANIES = ["PSA", "BGS", "CGC", "ACE"] as const;
+const GRADING_COMPANIES = ["PSA", "BGS", "CGC", "SGC", "TAG", "ACE"] as const;
 export type GradingCompany = (typeof GRADING_COMPANIES)[number];
 
 const HAS_HALF_GRADES: Record<GradingCompany, boolean> = {
   PSA: false,
   BGS: true,
   CGC: true,
+  SGC: false,
+  TAG: false,
   ACE: false,
 };
 

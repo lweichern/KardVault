@@ -7,31 +7,26 @@ interface SellModalProps {
   item: InventoryItem;
   onSell: (params: {
     inventoryId: string;
-    cardId: string;
-    salePriceRm: number;
+    cardId: string | null;
+    salePriceMyr: number;
     condition: string;
     quantity: number;
   }) => Promise<void>;
   onClose: () => void;
 }
 
-interface SaleResult {
-  totalRevenue: number;
-  totalProfit: number | null;
-  quantity: number;
-}
-
 export function SellModal({ item, onSell, onClose }: SellModalProps) {
-  const [salePrice, setSalePrice] = useState(item.sell_price_rm.toFixed(2));
+  const cardName = item.card?.name ?? item.manual_card_name ?? "Unknown";
+  const cardSetName = item.card?.set_name ?? item.manual_card_set ?? "";
+  const cardImage = item.card?.image_small;
+
+  // Default sale price from item.price_myr if set (convert from sen to RM)
+  const defaultPrice = item.price_myr != null ? (item.price_myr / 100).toFixed(2) : "";
+  const [salePrice, setSalePrice] = useState(defaultPrice);
   const [quantity, setQuantity] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SaleResult | null>(null);
-
-  const profitPerCard =
-    item.buy_price_rm != null
-      ? (parseFloat(salePrice) || 0) - item.buy_price_rm
-      : null;
+  const [sold, setSold] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,18 +43,11 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
       await onSell({
         inventoryId: item.id,
         cardId: item.card_id,
-        salePriceRm: price,
+        salePriceMyr: Math.round(price * 100),
         condition: item.condition,
         quantity,
       });
-
-      const totalRevenue = price * quantity;
-      const totalProfit =
-        item.buy_price_rm != null
-          ? (price - item.buy_price_rm) * quantity
-          : null;
-
-      setResult({ totalRevenue, totalProfit, quantity });
+      setSold(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to record sale");
       setSaving(false);
@@ -67,7 +55,7 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
   }
 
   // Success state
-  if (result) {
+  if (sold) {
     return (
       <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
         <div className="absolute inset-0 bg-black/60" onClick={onClose} />
@@ -93,42 +81,8 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
               Sale recorded
             </h3>
             <p className="text-text-secondary text-sm mb-5">
-              {result.quantity}× {item.card.name}
+              {quantity}× {cardName}
             </p>
-
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-bg-surface-2 rounded-xl p-3">
-                <p className="text-text-muted text-[10px] uppercase tracking-wide mb-0.5">
-                  Revenue
-                </p>
-                <p className="text-text-primary text-lg font-bold">
-                  RM {result.totalRevenue.toFixed(2)}
-                </p>
-              </div>
-              <div className="bg-bg-surface-2 rounded-xl p-3">
-                <p className="text-text-muted text-[10px] uppercase tracking-wide mb-0.5">
-                  Profit
-                </p>
-                {result.totalProfit != null ? (
-                  <p
-                    className={`text-lg font-bold ${
-                      result.totalProfit >= 0 ? "text-success" : "text-danger"
-                    }`}
-                  >
-                    {result.totalProfit >= 0 ? "+" : ""}RM{" "}
-                    {result.totalProfit.toFixed(2)}
-                  </p>
-                ) : (
-                  <p className="text-text-muted text-lg font-bold">—</p>
-                )}
-              </div>
-            </div>
-
-            {result.totalProfit == null && (
-              <p className="text-text-muted text-[11px] mb-4">
-                No buy price recorded — set one when adding cards to track profit
-              </p>
-            )}
 
             <button
               onClick={onClose}
@@ -148,10 +102,10 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
       <div className="relative w-full max-w-md bg-bg-surface rounded-t-2xl sm:rounded-2xl p-5">
         {/* Card preview */}
         <div className="flex items-center gap-3 mb-5">
-          {item.card.image_small ? (
+          {cardImage ? (
             <img
-              src={item.card.image_small}
-              alt={item.card.name}
+              src={cardImage}
+              alt={cardName}
               className="w-[56px] h-[78px] rounded-lg object-cover bg-bg-surface-2"
             />
           ) : (
@@ -159,11 +113,16 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
           )}
           <div className="flex-1 min-w-0">
             <h3 className="text-text-primary font-semibold text-[15px] truncate">
-              {item.card.name}
+              {cardName}
             </h3>
-            <p className="text-text-secondary text-xs">
-              {item.card.set_name} · {item.condition}
-            </p>
+            {cardSetName && (
+              <p className="text-text-secondary text-xs">
+                {cardSetName} · {item.condition}
+              </p>
+            )}
+            {!cardSetName && (
+              <p className="text-text-secondary text-xs">{item.condition}</p>
+            )}
             <p className="text-text-muted text-xs mt-0.5">
               {item.quantity} in stock
             </p>
@@ -182,25 +141,10 @@ export function SellModal({ item, onSell, onClose }: SellModalProps) {
               min="0"
               value={salePrice}
               onChange={(e) => setSalePrice(e.target.value)}
-              className="w-full h-11 bg-bg-surface-2 text-text-primary rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
+              placeholder="Enter sale price"
+              className="w-full h-11 bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl px-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
               required
             />
-            {profitPerCard != null && (
-              <p
-                className={`text-xs mt-1 ${
-                  profitPerCard >= 0 ? "text-success" : "text-danger"
-                }`}
-              >
-                {profitPerCard >= 0 ? "+" : ""}RM {profitPerCard.toFixed(2)} est.
-                profit per card
-                {quantity > 1 && (
-                  <span className="text-text-muted">
-                    {" "}
-                    · RM {(profitPerCard * quantity).toFixed(2)} total
-                  </span>
-                )}
-              </p>
-            )}
           </div>
 
           {/* Quantity */}
