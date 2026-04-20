@@ -75,9 +75,9 @@ async function fetchCandidates(
     id: r.id as string,
     name: r.name as string,
     setName: r.set_name as string,
-    cardNumber: r.card_number as string,
+    cardNumber: (r.number as string) ?? "",
     imageSmall: (r.image_small as string | null) ?? null,
-    marketPriceRm: (r.market_price_rm as number | null) ?? null,
+    marketPriceRm: null,
     score: r.score as number,
   }));
 }

@@ -185,8 +185,9 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
         // Inventory with card join
         supabase
           .from("inventory")
-          .select("quantity, sell_price_rm, listed_at, card:cards(id, name, image_small, set_name, market_price_rm, tcgplayer_market_price)")
-          .eq("vendor_id", vendorId),
+          .select("quantity, price_myr, created_at, card:cards(id, name, image_small, set_name, number, rarity)")
+          .eq("vendor_id", vendorId)
+          .eq("status", "ACTIVE"),
         // All sell transactions
         supabase
           .from("transactions")
@@ -232,11 +233,11 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
       ]);
 
     // --- Inventory stats ---
-    type InvRow = { quantity: number; sell_price_rm: number; listed_at: string; card: { id: string; name: string; image_small: string | null; set_name: string; market_price_rm: number | null; tcgplayer_market_price: number | null } | null };
+    type InvRow = { quantity: number; price_myr: number | null; created_at: string; card: { id: string; name: string; image_small: string | null; set_name: string; number: string | null; rarity: string | null } | null };
     const invRows = (invRes.data ?? []) as unknown as InvRow[];
     const inventoryCount = invRows.reduce((s, r) => s + r.quantity, 0);
     const marketValue = invRows.reduce(
-      (s, r) => s + (r.card?.market_price_rm ?? 0) * r.quantity, 0
+      (s, r) => s + ((r.price_myr ?? 0) / 100) * r.quantity, 0
     );
 
     // --- Buy cost map ---
@@ -300,7 +301,7 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
     ];
     for (const inv of invRows) {
       const ageDays = Math.floor(
-        (Date.now() - new Date(inv.listed_at).getTime()) / 86400000
+        (Date.now() - new Date(inv.created_at).getTime()) / 86400000
       );
       if (ageDays < 30) agingBuckets[0].count += inv.quantity;
       else if (ageDays < 60) agingBuckets[1].count += inv.quantity;
@@ -350,28 +351,28 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
     const longestHeldCard = invRows.length > 0
       ? (() => {
           const oldest = invRows.reduce((a, b) =>
-            new Date(a.listed_at) < new Date(b.listed_at) ? a : b
+            new Date(a.created_at) < new Date(b.created_at) ? a : b
           );
-          const ageDays = Math.floor((Date.now() - new Date(oldest.listed_at).getTime()) / 86400000);
+          const ageDays = Math.floor((Date.now() - new Date(oldest.created_at).getTime()) / 86400000);
           return oldest.card
             ? { card: oldest.card as unknown as Card, value: ageDays, label: `${ageDays} days` }
             : null;
         })()
       : null;
 
-    // Biggest price rise — cards where market > sell price (appreciation)
+    // Highest value card in inventory
     const biggestPriceRise = invRows.length > 0
       ? (() => {
-          let best: { card: InvRow["card"]; rise: number } | null = null;
+          let best: { card: InvRow["card"]; price: number } | null = null;
           for (const inv of invRows) {
-            if (!inv.card?.market_price_rm) continue;
-            const rise = inv.card.market_price_rm - inv.sell_price_rm;
-            if (!best || rise > best.rise) {
-              best = { card: inv.card, rise };
+            if (!inv.card || !inv.price_myr) continue;
+            const price = inv.price_myr / 100;
+            if (!best || price > best.price) {
+              best = { card: inv.card, price };
             }
           }
-          return best && best.rise > 0
-            ? { card: best.card as unknown as Card, value: best.rise, label: `+RM ${best.rise.toFixed(0)}` }
+          return best
+            ? { card: best.card as unknown as Card, value: best.price, label: `RM ${best.price.toFixed(0)}` }
             : null;
         })()
       : null;

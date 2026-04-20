@@ -18,9 +18,8 @@ export default function EventDetailPage({ params }: PageProps) {
     | {
         cardName: string;
         setName: string;
-        cardNumber: string;
+        cardNumber: string | null;
         imageSmall: string | null;
-        marketPriceRm: number | null;
         vendors: {
           displayName: string;
           slug: string;
@@ -235,11 +234,6 @@ export default function EventDetailPage({ params }: PageProps) {
                           <p className="text-storefront-text2 text-xs truncate">
                             {card.setName} · #{card.cardNumber}
                           </p>
-                          {card.marketPriceRm != null && (
-                            <p className="text-storefront-text text-xs font-semibold mt-0.5">
-                              Market: RM {card.marketPriceRm.toFixed(2)}
-                            </p>
-                          )}
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-storefront-text font-bold text-lg">

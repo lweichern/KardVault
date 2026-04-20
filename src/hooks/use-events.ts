@@ -190,9 +190,10 @@ export function useEventActions() {
     const { data, error } = await db
       .from("inventory")
       .select(
-        "card_id, vendor_id, quantity, card:cards(name, set_name, card_number, image_small, market_price_rm), vendor:vendors(display_name, slug, profile_image_url)"
+        "card_id, vendor_id, quantity, card:cards(name, set_name, number, image_small), vendor:vendors(display_name, slug, profile_image_url)"
       )
       .in("vendor_id", vendorIds)
+      .eq("status", "ACTIVE")
       .ilike("card.name", `%${query}%`)
       .not("card", "is", null)
       .limit(50);
@@ -206,9 +207,8 @@ export function useEventActions() {
       card: {
         name: string;
         set_name: string;
-        card_number: string;
+        number: string | null;
         image_small: string | null;
-        market_price_rm: number | null;
       };
       vendor: {
         display_name: string;
@@ -222,9 +222,8 @@ export function useEventActions() {
       {
         cardName: string;
         setName: string;
-        cardNumber: string;
+        cardNumber: string | null;
         imageSmall: string | null;
-        marketPriceRm: number | null;
         vendors: {
           displayName: string;
           slug: string;
@@ -251,9 +250,8 @@ export function useEventActions() {
         grouped.set(row.card_id, {
           cardName: row.card.name,
           setName: row.card.set_name,
-          cardNumber: row.card.card_number,
+          cardNumber: row.card.number,
           imageSmall: row.card.image_small,
-          marketPriceRm: row.card.market_price_rm,
           vendors: [vendorEntry],
         });
       }

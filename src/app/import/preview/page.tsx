@@ -115,14 +115,14 @@ function PreviewContent() {
         .slice(0, remainingCapacity);
       const rows = matched.map((r) => {
         const cand = r.candidates.find((c) => c.id === r.selectedCardId) ?? r.candidates[0];
-        const sellPrice = r.mappedFields.sellPriceRm ?? computeSellPrice(cand.marketPriceRm, state.batchPricingRule);
+        const sellPriceRm = r.mappedFields.sellPriceRm ?? computeSellPrice(cand.marketPriceRm, state.batchPricingRule);
         return {
           vendor_id: vendor.id,
           card_id: r.selectedCardId!,
           condition: r.mappedFields.condition,
           quantity: r.mappedFields.quantity,
-          sell_price_rm: sellPrice,
-          buy_price_rm: r.mappedFields.buyPriceRm,
+          price_myr: sellPriceRm ? Math.round(sellPriceRm * 100) : null,
+          is_graded: !!r.mappedFields.gradingCompany,
           grading_company: r.mappedFields.gradingCompany,
           grade: r.mappedFields.grade,
         };
