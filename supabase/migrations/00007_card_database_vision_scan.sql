@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS scan_logs CASCADE;
 DROP TABLE IF EXISTS inventory CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS cards CASCADE;
+DROP TABLE IF EXISTS card_sets CASCADE;
 
 -- ============================================
 -- STEP 2: CARD SETS (new reference table)
