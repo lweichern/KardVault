@@ -612,6 +612,7 @@ export type Database = {
           banner_image_url: string | null;
           bio: string | null;
         };
+        Relationships: [];
       };
     };
     Functions: {

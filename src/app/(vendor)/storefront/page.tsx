@@ -18,7 +18,7 @@ export default function StorefrontPage() {
     : "";
 
   const setCount = useMemo(() => {
-    const sets = new Set(items.map((i) => i.card.set_name));
+    const sets = new Set(items.filter((i) => i.card).map((i) => i.card!.set_name));
     return sets.size;
   }, [items]);
 

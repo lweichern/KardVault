@@ -82,22 +82,10 @@ export function CardSearch({ onSelect, placeholder = "Search cards..." }: CardSe
                   {card.name}
                 </p>
                 <p className="text-text-secondary text-xs truncate">
-                  {card.set_name} · {card.card_number}
+                  {card.set_name} · {card.number}
                 </p>
                 {card.rarity && (
                   <p className="text-text-muted text-[10px]">{card.rarity}</p>
-                )}
-              </div>
-              <div className="text-right flex-shrink-0">
-                {card.market_price_rm != null && (
-                  <p className="text-text-primary text-sm font-medium">
-                    RM {card.market_price_rm.toFixed(2)}
-                  </p>
-                )}
-                {card.tcgplayer_market_price != null && (
-                  <p className="text-text-muted text-[10px]">
-                    ${card.tcgplayer_market_price.toFixed(2)} USD
-                  </p>
                 )}
               </div>
             </button>

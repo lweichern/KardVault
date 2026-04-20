@@ -69,7 +69,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
         !searchQuery ||
         item.card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.card.set_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.card.card_number.toLowerCase().includes(searchQuery.toLowerCase());
+        item.card.number.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesSet = !activeSet || item.card.set_name === activeSet;
 
@@ -107,7 +107,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
       `Hi, I'm interested in this card from your KardVault store:`,
       ``,
       `${item.card.name}`,
-      `Set: ${item.card.set_name} · ${item.card.card_number}`,
+      `Set: ${item.card.set_name} · ${item.card.number}`,
       `Condition: ${conditionLabel}`,
     ];
     if (imageUrl) lines.push(``, imageUrl);
@@ -296,7 +296,7 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                     {item.card.name}
                   </p>
                   <p className="text-storefront-text2 text-[11px] truncate">
-                    {item.card.set_name} · {item.card.card_number}
+                    {item.card.set_name} · {item.card.number}
                   </p>
                   <span
                     className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
@@ -310,16 +310,6 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-green-600 text-[10px] font-medium">Available</p>
-                  {item.card.market_price_rm != null && (
-                    <>
-                      <p className="text-storefront-text2 text-[9px] uppercase tracking-wide mt-0.5">
-                        Market
-                      </p>
-                      <p className="text-storefront-text text-sm font-bold">
-                        RM {item.card.market_price_rm.toFixed(2)}
-                      </p>
-                    </>
-                  )}
                 </div>
               </a>
             ))}
@@ -364,11 +354,6 @@ export function StorefrontClient({ vendor, items }: StorefrontClientProps) {
                     >
                       {item.grading_company ? `${item.grading_company} ${item.grade}` : item.condition}
                     </span>
-                    {item.card.market_price_rm != null && (
-                      <p className="text-storefront-text text-[12px] font-bold">
-                        RM {item.card.market_price_rm.toFixed(2)}
-                      </p>
-                    )}
                   </div>
                 </div>
               </a>

@@ -58,7 +58,8 @@ export function useEvents(cityFilter?: City | null) {
   }, [db, cityFilter]);
 
   useEffect(() => {
-    fetchEvents();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchEvents();
   }, [fetchEvents]);
 
   return { events, loading, refresh: fetchEvents };
@@ -73,6 +74,7 @@ export function useEvent(eventId: string | null) {
 
   useEffect(() => {
     if (!eventId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }

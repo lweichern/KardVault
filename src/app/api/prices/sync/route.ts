@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { syncCards } from "@/lib/sync/sync-cards";
+import { seedCards } from "@/lib/seed/seed-cards";
 
 /**
  * GET /api/prices/sync
  *
- * Triggers a card data + price sync from pokemontcg.io.
+ * Triggers a card data sync from the pokemon-tcg-data GitHub source.
  * Protected by a shared secret (CRON_SECRET) to prevent public abuse.
  *
  * Query params:
- *   ?since=7   — incremental sync (last N days). Omit for full sync.
+ *   ?set=sv1   — sync only a specific set by ID. Omit for full sync.
  *
  * Can be called by:
  *   - Vercel Cron Jobs (set in vercel.json)
@@ -24,23 +24,13 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const sinceDays = searchParams.get("since");
-
-  let since: Date | undefined;
-  if (sinceDays) {
-    const days = parseInt(sinceDays, 10);
-    if (!isNaN(days) && days > 0) {
-      since = new Date();
-      since.setDate(since.getDate() - days);
-    }
-  }
+  const setId = searchParams.get("set") ?? undefined;
 
   try {
     const logs: string[] = [];
-    const result = await syncCards({
-      apiKey: process.env.POKEMONTCG_API_KEY,
-      since,
-      onProgress: (msg) => logs.push(msg),
+    const result = await seedCards({
+      setId,
+      onProgress: (msg: string) => logs.push(msg),
     });
 
     return NextResponse.json({

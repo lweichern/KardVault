@@ -59,7 +59,7 @@ export default async function StorefrontPage({ params }: PageProps) {
     .from("inventory")
     .select("*, card:cards(*)")
     .eq("vendor_id", vendor.id)
-    .order("listed_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   const items: StorefrontItem[] = (rawItems ?? []).map((row) => {
     const { card, ...rest } = row as Record<string, unknown>;

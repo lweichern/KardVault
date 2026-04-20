@@ -380,7 +380,7 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
     const weekAgoISO = weekAgo;
 
     // Most viewed cards (top 5)
-    const { data: viewsRaw } = await (supabase as any)
+    const { data: viewsRaw } = await supabase
       .from("storefront_views")
       .select("card_id, card:cards(*)")
       .eq("vendor_id", vendorId)
@@ -416,7 +416,7 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
       .map((v) => ({ card: v.card, viewCount: v.count }));
 
     // Search misses
-    const { data: searchesRaw } = await (supabase as any)
+    const { data: searchesRaw } = await supabase
       .from("storefront_searches")
       .select("query")
       .eq("vendor_id", vendorId)
@@ -497,7 +497,8 @@ export function useDashboard(vendorId: string | undefined): DashboardData {
   }, [vendorId, supabase]);
 
   useEffect(() => {
-    fetchDashboard();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchDashboard();
   }, [fetchDashboard]);
 
   return { ...data, loading };

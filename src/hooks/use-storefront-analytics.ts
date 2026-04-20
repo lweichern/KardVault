@@ -12,7 +12,7 @@ export function useStorefrontAnalytics(vendorId: string) {
     (cardId: string) => {
       if (viewedCards.current.has(cardId)) return;
       viewedCards.current.add(cardId);
-      (supabase as any)
+      supabase
         .from("storefront_views")
         .insert({ vendor_id: vendorId, card_id: cardId })
         .then(() => {});
@@ -26,7 +26,7 @@ export function useStorefrontAnalytics(vendorId: string) {
       if (normalized.length < 2 || loggedSearches.current.has(normalized))
         return;
       loggedSearches.current.add(normalized);
-      (supabase as any)
+      supabase
         .from("storefront_searches")
         .insert({
           vendor_id: vendorId,

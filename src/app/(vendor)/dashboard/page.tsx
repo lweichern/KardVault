@@ -463,6 +463,18 @@ function StatCard({
   );
 }
 
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-bg-surface-2 border border-border-default rounded-lg px-3 py-2 text-xs shadow-lg">
+      <p className="text-text-secondary">{label}</p>
+      <p className="text-text-primary font-medium">
+        RM {payload[0].value.toFixed(2)}
+      </p>
+    </div>
+  );
+}
+
 function RevenueChart({
   data,
   type,
@@ -477,18 +489,6 @@ function RevenueChart({
       </div>
     );
   }
-
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div className="bg-bg-surface-2 border border-border-default rounded-lg px-3 py-2 text-xs shadow-lg">
-        <p className="text-text-secondary">{label}</p>
-        <p className="text-text-primary font-medium">
-          RM {payload[0].value.toFixed(2)}
-        </p>
-      </div>
-    );
-  };
 
   const tickCount = data.length <= 7 ? data.length : data.length <= 30 ? 6 : 5;
   const interval = Math.max(0, Math.floor(data.length / tickCount) - 1);

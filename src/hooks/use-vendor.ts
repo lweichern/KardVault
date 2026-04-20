@@ -11,8 +11,6 @@ export function useVendor(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const fetchedForId = useRef<string | undefined>(undefined);
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   const fetchVendor = useCallback(async () => {
     if (!userId) {
@@ -38,10 +36,11 @@ export function useVendor(userId: string | undefined) {
   }, [userId, supabase]);
 
   useEffect(() => {
-    fetchVendor();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchVendor();
   }, [fetchVendor]);
 
-  const stillLoading = loading || (!!userId && fetchedForId.current !== userId);
+  const stillLoading = loading;
 
   async function createVendor(params: {
     displayName: string;
@@ -56,7 +55,7 @@ export function useVendor(userId: string | undefined) {
       .replace(/^-|-$/g, "")
       + "-" + Math.random().toString(36).slice(2, 6);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("vendors")
       .insert({
         id: userId,
@@ -81,14 +80,14 @@ export function useVendor(userId: string | undefined) {
   }) {
     if (!userId) throw new Error("Not authenticated");
 
-    const updates: Record<string, unknown> = {};
+    const updates: Database["public"]["Tables"]["vendors"]["Update"] = {};
     if (params.displayName !== undefined) updates.display_name = params.displayName;
     if (params.whatsappNumber !== undefined) updates.whatsapp_number = params.whatsappNumber;
     if (params.bio !== undefined) updates.bio = params.bio;
     if (params.profileImageUrl !== undefined) updates.profile_image_url = params.profileImageUrl;
     if (params.bannerImageUrl !== undefined) updates.banner_image_url = params.bannerImageUrl;
 
-    const { error } = await db
+    const { error } = await supabase
       .from("vendors")
       .update(updates)
       .eq("id", userId);

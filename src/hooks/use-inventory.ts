@@ -38,7 +38,8 @@ export function useInventory(vendorId: string | undefined) {
   }, [vendorId, supabase]);
 
   useEffect(() => {
-    fetchInventory();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchInventory();
   }, [fetchInventory]);
 
   async function addToInventory(params: {
