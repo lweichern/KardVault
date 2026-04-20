@@ -12,7 +12,7 @@ export class GeminiProvider implements VisionProvider {
 
   async identify(imageBase64: string): Promise<ScanResult> {
     const model = this.client.getGenerativeModel({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-2.5-flash",
     });
 
     const result = await model.generateContent([
