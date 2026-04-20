@@ -16,28 +16,21 @@ export function useCardSearch() {
   const search = useCallback(
     (q: string) => {
       setQuery(q);
-
       if (debounceRef.current) clearTimeout(debounceRef.current);
-
       if (q.trim().length < 2) {
         setResults([]);
         setSearching(false);
         return;
       }
-
       setSearching(true);
-
       debounceRef.current = setTimeout(async () => {
-        // Use ilike for prefix/contains matching — fast with the trigram GIN index
-        const { data, error } = await supabase
-          .from("cards")
-          .select("*")
-          .or(`name.ilike.%${q.trim()}%,card_number.ilike.%${q.trim()}%`)
-          .order("name")
-          .limit(20);
-
+        const { data, error } = await supabase.rpc("search_cards", {
+          search_query: q.trim(),
+          result_limit: 20,
+          result_offset: 0,
+        });
         if (!error && data) {
-          setResults(data);
+          setResults(data as Card[]);
         }
         setSearching(false);
       }, 250);

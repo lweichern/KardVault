@@ -9,219 +9,137 @@ type InventoryRow = Database["public"]["Tables"]["inventory"]["Row"];
 type Condition = InventoryRow["condition"];
 
 export interface InventoryItem extends InventoryRow {
-  card: Card;
+  card: Card | null;
 }
 
 export function useInventory(vendorId: string | undefined) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalProfit, setTotalProfit] = useState<number | null>(null);
-  const [viewCounts, setViewCounts] = useState<Map<string, number>>(new Map());
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
 
   const fetchInventory = useCallback(async () => {
     if (!vendorId) return;
     setLoading(true);
-
     const { data, error } = await supabase
       .from("inventory")
       .select("*, card:cards(*)")
       .eq("vendor_id", vendorId)
+      .eq("status", "ACTIVE")
       .order("updated_at", { ascending: false });
 
     if (!error && data) {
       const mapped: InventoryItem[] = data.map((row) => {
         const { card, ...rest } = row as Record<string, unknown>;
-        return {
-          ...(rest as InventoryRow),
-          card: card as Card,
-        };
+        return { ...(rest as InventoryRow), card: (card as Card) ?? null };
       });
       setItems(mapped);
     }
     setLoading(false);
   }, [vendorId, supabase]);
 
-  const fetchProfit = useCallback(async () => {
-    if (!vendorId) return;
-
-    const { data: sells } = await supabase
-      .from("transactions")
-      .select("price_rm, quantity")
-      .eq("vendor_id", vendorId)
-      .eq("type", "sell");
-
-    const { data: buys } = await supabase
-      .from("transactions")
-      .select("price_rm, quantity")
-      .eq("vendor_id", vendorId)
-      .eq("type", "buy");
-
-    type TxRow = { price_rm: number; quantity: number };
-    const totalRevenue = (sells ?? []).reduce(
-      (sum, t) => sum + (t as TxRow).price_rm * (t as TxRow).quantity,
-      0
-    );
-    const totalCost = (buys ?? []).reduce(
-      (sum, t) => sum + (t as TxRow).price_rm * (t as TxRow).quantity,
-      0
-    );
-
-    setTotalProfit(totalRevenue - totalCost);
-  }, [vendorId, supabase]);
-
-  const fetchViewCounts = useCallback(async () => {
-    if (!vendorId) return;
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    const { data } = await (supabase as any)
-      .from("storefront_views")
-      .select("card_id")
-      .eq("vendor_id", vendorId)
-      .gte("viewed_at", weekAgo.toISOString());
-
-    if (data) {
-      const counts = new Map<string, number>();
-      for (const row of data as { card_id: string }[]) {
-        counts.set(row.card_id, (counts.get(row.card_id) ?? 0) + 1);
-      }
-      setViewCounts(counts);
-    }
-  }, [vendorId, supabase]);
-
   useEffect(() => {
     fetchInventory();
-    fetchProfit();
-    fetchViewCounts();
-  }, [fetchInventory, fetchProfit, fetchViewCounts]);
+  }, [fetchInventory]);
 
   async function addToInventory(params: {
-    cardId: string;
-    sellPriceRm: number;
-    buyPriceRm?: number;
+    cardId?: string;
+    manualCardName?: string;
+    manualCardSet?: string;
+    manualCardNumber?: string;
+    priceMyr?: number;
     condition: Condition;
     quantity: number;
     gradingCompany?: string;
     grade?: string;
+    subgrades?: Record<string, string>;
+    certNumber?: string;
+    scanSource?: string;
   }) {
     if (!vendorId) throw new Error("Not authenticated");
-
-    const existing = items.find(
-      (i) =>
-        i.card_id === params.cardId &&
-        i.condition === params.condition &&
-        (i.grading_company ?? "") === (params.gradingCompany ?? "") &&
-        (i.grade ?? "") === (params.grade ?? "")
-    );
-
-    if (existing) {
-      const { error } = await db
-        .from("inventory")
-        .update({
-          quantity: existing.quantity + params.quantity,
-          sell_price_rm: params.sellPriceRm,
-          buy_price_rm: params.buyPriceRm ?? existing.buy_price_rm,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id);
-
-      if (error) throw error;
-    } else {
-      const { error } = await db.from("inventory").insert({
-        vendor_id: vendorId,
-        card_id: params.cardId,
-        sell_price_rm: params.sellPriceRm,
-        buy_price_rm: params.buyPriceRm,
-        condition: params.condition,
-        quantity: params.quantity,
-        grading_company: params.gradingCompany ?? null,
-        grade: params.grade ?? null,
-      });
-
-      if (error) throw error;
-    }
-
-    if (params.buyPriceRm != null) {
-      await db.from("transactions").insert({
-        vendor_id: vendorId,
-        card_id: params.cardId,
-        type: "buy",
-        quantity: params.quantity,
-        price_rm: params.buyPriceRm,
-        condition: params.condition,
-      });
-    }
-
+    const { error } = await supabase.from("inventory").insert({
+      vendor_id: vendorId,
+      card_id: params.cardId ?? null,
+      manual_card_name: params.manualCardName ?? null,
+      manual_card_set: params.manualCardSet ?? null,
+      manual_card_number: params.manualCardNumber ?? null,
+      price_myr: params.priceMyr ?? null,
+      condition: params.condition,
+      quantity: params.quantity,
+      is_graded: !!(params.gradingCompany && params.grade),
+      grading_company: params.gradingCompany ?? null,
+      grade: params.grade ?? null,
+      subgrades: params.subgrades ?? null,
+      cert_number: params.certNumber ?? null,
+      scan_source: params.scanSource ?? null,
+    });
+    if (error) throw error;
     await fetchInventory();
-    await fetchProfit();
+  }
+
+  async function addBulkToInventory(
+    cards: { cardId: string; condition?: Condition; scanSource?: string }[]
+  ) {
+    if (!vendorId) throw new Error("Not authenticated");
+    const rows = cards.map((c) => ({
+      vendor_id: vendorId,
+      card_id: c.cardId,
+      condition: c.condition ?? ("NM" as Condition),
+      quantity: 1,
+      scan_source: c.scanSource ?? null,
+    }));
+    const { error } = await supabase.from("inventory").insert(rows);
+    if (error) throw error;
+    await fetchInventory();
   }
 
   async function sellFromInventory(params: {
     inventoryId: string;
-    cardId: string;
-    salePriceRm: number;
+    cardId: string | null;
+    salePriceMyr: number;
     condition: string;
     quantity: number;
   }) {
     if (!vendorId) throw new Error("Not authenticated");
-
     const item = items.find((i) => i.id === params.inventoryId);
     if (!item) throw new Error("Item not found");
 
     if (item.quantity <= params.quantity) {
-      const { error } = await db
+      await supabase
         .from("inventory")
-        .delete()
+        .update({ status: "SOLD", updated_at: new Date().toISOString() })
         .eq("id", params.inventoryId);
-      if (error) throw error;
     } else {
-      const { error } = await db
+      await supabase
         .from("inventory")
         .update({
           quantity: item.quantity - params.quantity,
           updated_at: new Date().toISOString(),
         })
         .eq("id", params.inventoryId);
-      if (error) throw error;
     }
 
-    await db.from("transactions").insert({
-      vendor_id: vendorId,
-      card_id: params.cardId,
-      type: "sell",
-      quantity: params.quantity,
-      price_rm: params.salePriceRm,
-      market_price_at_time: item.card.market_price_rm,
-      condition: params.condition,
-    });
-
+    if (params.cardId) {
+      await supabase.from("transactions").insert({
+        vendor_id: vendorId,
+        card_id: params.cardId,
+        type: "sell",
+        quantity: params.quantity,
+        price_rm: params.salePriceMyr / 100,
+        condition: params.condition,
+      });
+    }
     await fetchInventory();
-    await fetchProfit();
   }
 
   const totalCards = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalMarketValue = items.reduce(
-    (sum, i) => sum + (i.card.market_price_rm ?? 0) * i.quantity,
-    0
-  );
-  const totalAskingPrice = items.reduce(
-    (sum, i) => sum + i.sell_price_rm * i.quantity,
-    0
-  );
 
   return {
     items,
     loading,
     addToInventory,
+    addBulkToInventory,
     sellFromInventory,
     refresh: fetchInventory,
     totalCards,
-    totalMarketValue,
-    totalAskingPrice,
-    totalProfit,
-    viewCounts,
   };
 }
