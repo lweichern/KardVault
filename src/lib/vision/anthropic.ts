@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { SINGLE_CARD_PROMPT } from "./prompts";
-import type { VisionProvider, ScanResult } from "./types";
+import { EXTRACTION_PROMPT } from "./prompts";
+import { parseExtractionJson } from "./parse";
+import type { VisionProvider, ExtractionResult } from "./types";
 
 export class AnthropicProvider implements VisionProvider {
   name = "claude-haiku-4.5";
@@ -10,7 +11,7 @@ export class AnthropicProvider implements VisionProvider {
     this.client = new Anthropic({ apiKey });
   }
 
-  async identify(imageBase64: string): Promise<ScanResult> {
+  async extract(imagesBase64: string[]): Promise<ExtractionResult> {
     const response = await this.client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 500,
@@ -18,18 +19,15 @@ export class AnthropicProvider implements VisionProvider {
         {
           role: "user",
           content: [
-            {
-              type: "image",
+            ...imagesBase64.map((data) => ({
+              type: "image" as const,
               source: {
-                type: "base64",
-                media_type: "image/jpeg",
-                data: imageBase64,
+                type: "base64" as const,
+                media_type: "image/jpeg" as const,
+                data,
               },
-            },
-            {
-              type: "text",
-              text: SINGLE_CARD_PROMPT,
-            },
+            })),
+            { type: "text" as const, text: EXTRACTION_PROMPT },
           ],
         },
       ],
@@ -37,7 +35,6 @@ export class AnthropicProvider implements VisionProvider {
 
     const textBlock = response.content.find((block) => block.type === "text");
     const text = textBlock && textBlock.type === "text" ? textBlock.text : "";
-    const cleaned = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-    return JSON.parse(cleaned) as ScanResult;
+    return parseExtractionJson(text);
   }
 }

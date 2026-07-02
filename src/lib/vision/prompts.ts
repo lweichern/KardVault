@@ -1,22 +1,26 @@
-export const SINGLE_CARD_PROMPT = `You are a Pokémon TCG card identification system. Analyze this card image and return ONLY a JSON object with these fields:
+// Tier 3 extraction prompt (CLAUDE-enhance.md §2 Tier 3): strict JSON,
+// extraction only — the model must never guess identifiers or identify cards.
 
+export const EXTRACTION_PROMPT = `You are extracting text fields from a trading card photo. You may receive two images: the full card and a zoomed crop of its identifier text region. Return ONLY valid JSON, no markdown, no explanation. Schema:
 {
-  "card_name": "exact card name as printed",
-  "set_name": "expansion set name",
-  "card_number": "card number as printed (e.g., '125/197' or 'GG56/GG70')",
-  "hp": "HP value if visible",
-  "rarity": "rarity if identifiable",
-  "card_type": "Pokémon, Trainer, or Energy",
-  "subtypes": ["ex", "VSTAR", "Supporter", etc.],
-  "regulation_mark": "letter if visible (e.g., 'F', 'G', 'H')",
-  "confidence": "high, medium, or low",
-  "is_graded": false,
-  "grading_company": null,
-  "grade": null,
-  "subgrades": null,
-  "cert_number": null
+  "game_guess": "pokemon" | "mtg" | "yugioh" | "riftbound" | "unknown",
+  "card_name": string | null,
+  "collector_number": string | null,
+  "set_code": string | null,
+  "set_total": string | null,
+  "passcode": string | null,
+  "language": "EN" | "JP" | "other" | null,
+  "visible_text_fragments": [string],
+  "confidence": "high" | "medium" | "low",
+  "is_graded": boolean,
+  "grading_company": string | null,
+  "grade": string | null,
+  "cert_number": string | null
 }
-
-If the card is in a grading slab (PSA, BGS, CGC, SGC, TAG, or ACE), set is_graded to true and fill in grading_company, grade, subgrades (if visible: {"centering":"9.5","corners":"10","edges":"9.5","surface":"10"}), and cert_number.
-
-If you cannot identify a field, set it to null. Return ONLY the JSON, no other text.`;
+Field notes:
+- collector_number: exactly as printed, e.g. "123/198", "0057", "LOB-EN005".
+- set_total: the denominator when the number is printed as "123/198" (here "198").
+- passcode: the 8-digit Yu-Gi-Oh passcode, else null.
+- visible_text_fragments: any partial legible text not captured above.
+- If the card is inside a grading slab (PSA, BGS, CGC, SGC, TAG, ACE): set is_graded true and fill grading_company, grade, cert_number from the slab label.
+Use null for anything not clearly legible. Do NOT guess identifiers.`;

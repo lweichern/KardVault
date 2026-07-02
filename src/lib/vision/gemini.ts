@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { SINGLE_CARD_PROMPT } from "./prompts";
-import type { VisionProvider, ScanResult } from "./types";
+import { EXTRACTION_PROMPT } from "./prompts";
+import { parseExtractionJson } from "./parse";
+import type { VisionProvider, ExtractionResult } from "./types";
 
 export class GeminiProvider implements VisionProvider {
   name = "gemini-2.5-flash";
@@ -10,23 +11,18 @@ export class GeminiProvider implements VisionProvider {
     this.client = new GoogleGenerativeAI(apiKey);
   }
 
-  async identify(imageBase64: string): Promise<ScanResult> {
+  async extract(imagesBase64: string[]): Promise<ExtractionResult> {
     const model = this.client.getGenerativeModel({
       model: "gemini-2.5-flash",
     });
 
     const result = await model.generateContent([
-      SINGLE_CARD_PROMPT,
-      {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: imageBase64,
-        },
-      },
+      EXTRACTION_PROMPT,
+      ...imagesBase64.map((data) => ({
+        inlineData: { mimeType: "image/jpeg", data },
+      })),
     ]);
 
-    const text = result.response.text();
-    const cleaned = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-    return JSON.parse(cleaned) as ScanResult;
+    return parseExtractionJson(result.response.text());
   }
 }

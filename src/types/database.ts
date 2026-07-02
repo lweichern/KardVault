@@ -764,6 +764,21 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["cards"]["Row"][];
       };
+      match_cards: {
+        Args: {
+          p_name: string;
+          p_set_hint?: string;
+          p_number_hint?: string;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          set_name: string;
+          number: string;
+          image_small: string;
+          score: number;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

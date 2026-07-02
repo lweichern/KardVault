@@ -1,6 +1,7 @@
 import OpenAI from "openai";
-import { SINGLE_CARD_PROMPT } from "./prompts";
-import type { VisionProvider, ScanResult } from "./types";
+import { EXTRACTION_PROMPT } from "./prompts";
+import { parseExtractionJson } from "./parse";
+import type { VisionProvider, ExtractionResult } from "./types";
 
 export class OpenAIProvider implements VisionProvider {
   name = "gpt-4o-mini";
@@ -10,7 +11,7 @@ export class OpenAIProvider implements VisionProvider {
     this.client = new OpenAI({ apiKey });
   }
 
-  async identify(imageBase64: string): Promise<ScanResult> {
+  async extract(imagesBase64: string[]): Promise<ExtractionResult> {
     const response = await this.client.chat.completions.create({
       model: "gpt-4o-mini",
       max_tokens: 500,
@@ -18,23 +19,16 @@ export class OpenAIProvider implements VisionProvider {
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: SINGLE_CARD_PROMPT,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-              },
-            },
+            { type: "text", text: EXTRACTION_PROMPT },
+            ...imagesBase64.map((data) => ({
+              type: "image_url" as const,
+              image_url: { url: `data:image/jpeg;base64,${data}` },
+            })),
           ],
         },
       ],
     });
 
-    const text = response.choices[0]?.message?.content ?? "";
-    const cleaned = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-    return JSON.parse(cleaned) as ScanResult;
+    return parseExtractionJson(response.choices[0]?.message?.content ?? "");
   }
 }
