@@ -405,6 +405,146 @@ export type Database = {
           },
         ];
       };
+      card_hashes: {
+        Row: {
+          game: string;
+          card_id: string;
+          printing_id: string;
+          hash_full: string;
+          hash_art: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          game?: string;
+          card_id: string;
+          printing_id?: string;
+          hash_full: string;
+          hash_art?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          game?: string;
+          card_id?: string;
+          printing_id?: string;
+          hash_full?: string;
+          hash_art?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "card_hashes_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scan_events: {
+        Row: {
+          id: string;
+          vendor_id: string | null;
+          session_id: string | null;
+          mode: string | null;
+          tier_resolved: number | null;
+          auto_accepted: boolean;
+          hash_best_distance: number | null;
+          hash_margin: number | null;
+          ocr_parsed: boolean | null;
+          gemini_called: boolean;
+          resolved_card_id: string | null;
+          candidates: Json | null;
+          latency_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vendor_id?: string | null;
+          session_id?: string | null;
+          mode?: string | null;
+          tier_resolved?: number | null;
+          auto_accepted?: boolean;
+          hash_best_distance?: number | null;
+          hash_margin?: number | null;
+          ocr_parsed?: boolean | null;
+          gemini_called?: boolean;
+          resolved_card_id?: string | null;
+          candidates?: Json | null;
+          latency_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vendor_id?: string | null;
+          session_id?: string | null;
+          mode?: string | null;
+          tier_resolved?: number | null;
+          auto_accepted?: boolean;
+          hash_best_distance?: number | null;
+          hash_margin?: number | null;
+          ocr_parsed?: boolean | null;
+          gemini_called?: boolean;
+          resolved_card_id?: string | null;
+          candidates?: Json | null;
+          latency_ms?: number | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scan_events_vendor_id_fkey";
+            columns: ["vendor_id"];
+            isOneToOne: false;
+            referencedRelation: "vendors";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scan_events_resolved_card_id_fkey";
+            columns: ["resolved_card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scan_corrections: {
+        Row: {
+          id: string;
+          scan_event_id: string | null;
+          candidates_shown: Json | null;
+          chosen_card_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          scan_event_id?: string | null;
+          candidates_shown?: Json | null;
+          chosen_card_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          scan_event_id?: string | null;
+          candidates_shown?: Json | null;
+          chosen_card_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scan_corrections_scan_event_id_fkey";
+            columns: ["scan_event_id"];
+            isOneToOne: false;
+            referencedRelation: "scan_events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "scan_corrections_chosen_card_id_fkey";
+            columns: ["chosen_card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       events: {
         Row: {
           id: string;
