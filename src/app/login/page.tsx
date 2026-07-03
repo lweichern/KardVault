@@ -171,7 +171,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.6</p>
+        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.7</p>
       </div>
     </div>
   );
