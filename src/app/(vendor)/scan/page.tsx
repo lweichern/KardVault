@@ -140,6 +140,11 @@ export default function ScanPage() {
     return guideRectFromLayout(container, video);
   }, [videoRef]);
 
+  // Consecutive quality-gate failures. Thresholds are device-dependent, so
+  // after 2 rejections the next tap captures anyway — the confirm UI is the
+  // real safety net; gates must never hard-lock the shutter.
+  const gateFails = useRef(0);
+
   /** Capture the current frame and run the client pipeline. */
   const captureArtifacts = useCallback((): CaptureArtifacts | null => {
     const frame = capturePhoto();
@@ -151,12 +156,20 @@ export default function ScanPage() {
       w: frame.width * 0.6,
       h: frame.height * 0.8,
     };
-    const outcome = processCapture(frame, guide);
+    const outcome = processCapture(frame, guide, {
+      skipQualityGates: gateFails.current >= 2,
+    });
     if (!outcome.ok) {
-      showToast(outcome.reason);
+      gateFails.current++;
+      showToast(
+        gateFails.current >= 2
+          ? `${outcome.reason} Tap again to capture anyway.`
+          : outcome.reason
+      );
       retake();
       return null;
     }
+    gateFails.current = 0;
     return outcome.artifacts;
   }, [capturePhoto, getGuideRect, retake]);
 
@@ -180,6 +193,7 @@ export default function ScanPage() {
     setBulkError(null);
     setCorrectionTarget(null);
     recentHashes.current = [];
+    gateFails.current = 0;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -458,9 +472,12 @@ export default function ScanPage() {
 
   return (
     <div className="fixed inset-0 z-[60] bg-bg-primary flex flex-col">
-      {/* Toast */}
+      {/* Toast — offset below the notch/Dynamic Island via safe-area inset */}
       {toast && (
-        <div className="absolute top-safe z-70 left-1/2 -translate-x-1/2 mt-4 px-4 py-2.5 rounded-full bg-bg-surface border border-border-default text-text-primary text-xs font-medium shadow-lg whitespace-nowrap pointer-events-none">
+        <div
+          className="absolute z-70 left-1/2 -translate-x-1/2 max-w-[85vw] px-4 py-2.5 rounded-2xl bg-bg-surface border border-border-default text-text-primary text-xs font-medium shadow-lg text-center pointer-events-none"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+        >
           {toast}
         </div>
       )}

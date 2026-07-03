@@ -94,12 +94,25 @@ export function guideRectFromLayout(
   };
 }
 
+export interface CaptureOptions {
+  /**
+   * Bypass blur/glare gates. Used as an escape hatch after repeated gate
+   * failures — thresholds are device-dependent and the Tier 4 confirm UI is
+   * the real safety net, so gates must never hard-lock capture.
+   */
+  skipQualityGates?: boolean;
+}
+
 /**
  * Process a captured camera frame into waterfall inputs.
  * `guideRect` is the framing-guide rectangle in frame pixel coordinates —
  * when boundary detection fails, the guide IS the card (the vendor aligned it).
  */
-export function processCapture(frame: ImageData, guideRect: GuideRect): CaptureOutcome {
+export function processCapture(
+  frame: ImageData,
+  guideRect: GuideRect,
+  options: CaptureOptions = {}
+): CaptureOutcome {
   // 1. Crop to the guide region plus margin — detection never sees the
   //    cluttered full frame.
   const mx = guideRect.w * GUIDE_MARGIN;
@@ -124,20 +137,22 @@ export function processCapture(frame: ImageData, guideRect: GuideRect): CaptureO
   ];
   const corners = quad?.corners ?? fallback;
 
-  // 3. Warp to the canonical flat card.
-  const warped = warpPerspective(region, corners, CARD_W, CARD_H);
-
-  // 4. Blur gate on the crop we'll actually use.
-  if (blurScore(warped) < BLUR_MIN) {
+  // 3. Blur gate on the NATIVE-resolution region crop. The perspective warp's
+  //    bilinear resampling smooths pixels and crushes Laplacian variance, so
+  //    gating on the warped crop rejects perfectly sharp captures.
+  if (!options.skipQualityGates && blurScore(region) < BLUR_MIN) {
     return { ok: false, reason: "Hold steady — the photo looks blurry." };
   }
+
+  // 4. Warp to the canonical flat card.
+  const warped = warpPerspective(region, corners, CARD_W, CARD_H);
 
   // 5. Identifier strip: crop per game layout, glare-gate, zoom for OCR.
   const regions = getCatalogProvider("pokemon").identifierRegions();
   const stripSpec = regions.find((r) => r.key === "identifier")!;
   const artSpec = regions.find((r) => r.key === "art")!;
   const strip = cropFraction(warped, stripSpec.x, stripSpec.y, stripSpec.w, stripSpec.h);
-  if (glareScore(strip) > GLARE_MAX) {
+  if (!options.skipQualityGates && glareScore(strip) > GLARE_MAX) {
     return { ok: false, reason: "Tilt the card slightly to reduce glare." };
   }
 

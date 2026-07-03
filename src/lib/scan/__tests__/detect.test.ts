@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectCardQuad, blurScore, glareScore } from "../detect";
+import { detectCardQuad, blurScore, glareScore, BLUR_MIN } from "../detect";
 import type { RawImage } from "../raw-image";
 import type { Point } from "../geometry";
 
@@ -108,7 +108,7 @@ describe("blurScore", () => {
 
   it("scores a smooth gradient below the blur threshold", () => {
     const smooth = makeImage(100, 100, (x, y) => (x + y) / 2);
-    expect(blurScore(smooth)).toBeLessThan(100);
+    expect(blurScore(smooth)).toBeLessThan(BLUR_MIN);
   });
 });
 

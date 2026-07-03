@@ -13,8 +13,12 @@ export interface QuadResult {
   score: number; // 0..1 fraction of scanlines with edge support
 }
 
-// Spec §3 starting thresholds — tune with scan_events telemetry.
-export const BLUR_MIN = 100; // variance of Laplacian on the warped crop
+// Quality-gate thresholds — tune with scan_events telemetry.
+// Blur is measured on the NATIVE-resolution guide-region crop (pre-warp).
+// The spec's classic 100 assumes full-res still photos; getUserMedia preview
+// frames are softer, so we gate lower: motion smears score < ~20, sharp
+// preview frames of a card typically 60+.
+export const BLUR_MIN = 45; // variance of Laplacian on the region crop
 export const GLARE_MAX = 0.18; // fraction of blown pixels tolerated on the strip
 
 const DETECT_W = 320;
