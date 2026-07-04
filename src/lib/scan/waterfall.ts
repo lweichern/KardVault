@@ -27,6 +27,13 @@ export const T_ART_ACCEPT = 18;
  * combined; unrelated collisions land ≥32 but get filtered by ranking.
  */
 export const CLUSTER_RADIUS = T_ACCEPT + T_ART_ACCEPT; // 32
+/**
+ * Shortcut tightness: skip Gemini only when the best hit is strong enough
+ * that the true card is almost certainly in the top-3. Looser clusters
+ * (real-photo noise ~30) can rank the exact printing below its art-identical
+ * siblings — there Gemini earns its ~5s by reading the collector number.
+ */
+export const CLUSTER_TIGHT = 24;
 /** Hash hits scoring worse than this are noise — never shown, never priors. */
 export const HASH_NOISE_CEILING = CLUSTER_RADIUS + 10; // 42
 
@@ -195,7 +202,7 @@ export async function runWaterfall(
   // and the vendor verifies the printing anyway (prices differ wildly).
   const strongCluster =
     priors.length >= 2 &&
-    scoreOf(priors[0]) <= CLUSTER_RADIUS &&
+    scoreOf(priors[0]) <= CLUSTER_TIGHT &&
     scoreOf(priors[1]) <= CLUSTER_RADIUS;
   if (strongCluster && !telemetry.ocrParsed) {
     const result = await finish(
