@@ -85,21 +85,23 @@ const input: ScanInput = {
 describe("Tier 1 — perceptual hash", () => {
   it("auto-accepts a clean hash match within thresholds", async () => {
     const deps = makeDeps({
-      hashSearch: async () => hashHits([CHARIZARD.id, 4, 6], [PIKACHU.id, 22, 30]),
+      // scores 10 vs 38 — second stays inside the noise ceiling
+      hashSearch: async () => hashHits([CHARIZARD.id, 4, 6], [PIKACHU.id, 18, 20]),
     });
     const result = await runWaterfall(input, deps);
     expect(result.autoAccepted).toBe(true);
     expect(result.tierResolved).toBe(1);
     expect(result.card?.id).toBe(CHARIZARD.id);
-    expect(result.telemetry.hashBestDistance).toBe(4);
-    expect(result.telemetry.hashMargin).toBe(18);
+    // telemetry reports COMBINED full+art score and margin
+    expect(result.telemetry.hashBestDistance).toBe(4 + 6);
+    expect(result.telemetry.hashMargin).toBe(18 + 20 - (4 + 6));
     expect(result.telemetry.geminiCalled).toBe(false);
   });
 
   it("rejects when the margin is too small, carrying priors to later tiers", async () => {
     const deps = makeDeps({
-      hashSearch: async () =>
-        hashHits([CHARIZARD.id, 8, 5], [PIKACHU.id, 8 + T_MARGIN - 1, 9]),
+      // combined scores 13 vs 15 → margin 2 < T_MARGIN
+      hashSearch: async () => hashHits([CHARIZARD.id, 8, 5], [PIKACHU.id, 9, 6]),
     });
     const result = await runWaterfall(input, deps);
     expect(result.autoAccepted).toBe(false);
@@ -218,7 +220,9 @@ describe("Tier 3 — structured extraction", () => {
 
   it("auto-accepts on name + hash-prior agreement", async () => {
     const deps = makeDeps({
-      hashSearch: async () => hashHits([CHARIZARD.id, 14, 10], [MEW.id, 15, 12]),
+      // 16 > T_ACCEPT (no Tier 1 accept); MEW's score 70 is past the noise
+      // ceiling so no cluster forms — the waterfall proceeds to Tier 3
+      hashSearch: async () => hashHits([CHARIZARD.id, 16, 12], [MEW.id, 40, 30]),
       vision: {
         name: "fake-gemini",
         extract: async () => ({ ...baseExtraction, card_name: "Charizard ex" }),

@@ -17,6 +17,17 @@ export interface HashHit {
   cardId: string;
   distance: number; // Hamming distance on hash_full
   artDistance: number | null; // Hamming distance on hash_art when both sides have one
+  score?: number; // combined ranking score — see hashScore(); derived when absent
+}
+
+/**
+ * Combined ranking score. Full-hash distance alone mis-ranks real photos:
+ * random cards collide at 10–12 bits while the true card (foil shine, warp
+ * offset) sits at 14–20. True matches are strong on BOTH hashes; collisions
+ * almost never are. Missing art hash gets a penalty so it can't win ties.
+ */
+export function hashScore(distance: number, artDistance: number | null): number {
+  return artDistance !== null ? distance + artDistance : distance * 2 + 4;
 }
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -95,9 +106,9 @@ export function nearestAmong(
       hashArt && e.hashArt && isValidHash(hashArt) && isValidHash(e.hashArt)
         ? hammingHex(hashArt, e.hashArt)
         : null;
-    hits.push({ cardId: e.cardId, distance, artDistance });
+    hits.push({ cardId: e.cardId, distance, artDistance, score: hashScore(distance, artDistance) });
   }
-  hits.sort((a, b) => a.distance - b.distance);
+  hits.sort((a, b) => a.score - b.score);
   return hits.slice(0, k);
 }
 

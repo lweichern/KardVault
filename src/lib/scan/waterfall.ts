@@ -21,9 +21,22 @@ export const T_ACCEPT = 14;
 export const T_MARGIN = 6;
 /** Art-hash agreement slack: art crops tolerate a little more noise. */
 export const T_ART_ACCEPT = 18;
+/**
+ * Combined-score radius for the same-art reprint cluster shortcut.
+ * Measured on real photos: the true card's reprint family scores ~30
+ * combined; unrelated collisions land ≥32 but get filtered by ranking.
+ */
+export const CLUSTER_RADIUS = T_ACCEPT + T_ART_ACCEPT; // 32
+/** Hash hits scoring worse than this are noise — never shown, never priors. */
+export const HASH_NOISE_CEILING = CLUSTER_RADIUS + 10; // 42
 
 const PRIOR_K = 5;
 const MAX_CANDIDATES = 3;
+
+/** Combined score with fallback for deps-injected hits that omit it (tests). */
+function scoreOf(h: HashHit): number {
+  return h.score ?? (h.artDistance !== null ? h.distance + h.artDistance : h.distance * 2 + 4);
+}
 
 export interface ScanInput {
   /** Warped full-card crop, base64 JPEG. */
@@ -109,18 +122,23 @@ export async function runWaterfall(
   const known = new Map<string, Card>();
 
   // ── Tier 1: perceptual hash ────────────────────────────────────────────────
+  // Hits are ranked by COMBINED full+art score (see hashScore): full-hash
+  // distance alone lets random collisions outrank the true card on real
+  // photos. Anything past the noise ceiling is discarded entirely — junk
+  // must never surface as a candidate or a prior.
   let priors: HashHit[] = [];
   if (deps.hashSearch && input.hashFull) {
     try {
-      priors = await deps.hashSearch(input.hashFull, input.hashArt ?? null, PRIOR_K);
+      const hits = await deps.hashSearch(input.hashFull, input.hashArt ?? null, PRIOR_K);
+      priors = hits.filter((h) => scoreOf(h) <= HASH_NOISE_CEILING);
     } catch (err) {
       console.error("[waterfall] tier1 failed:", err);
       priors = [];
     }
     if (priors.length > 0) {
       const best = priors[0];
-      const margin = priors.length > 1 ? priors[1].distance - best.distance : 64;
-      telemetry.hashBestDistance = best.distance;
+      const margin = priors.length > 1 ? scoreOf(priors[1]) - scoreOf(best) : 64;
+      telemetry.hashBestDistance = scoreOf(best); // combined score, not raw full-hash distance
       telemetry.hashMargin = margin;
 
       const artAgrees = best.artDistance === null || best.artDistance <= T_ART_ACCEPT;
@@ -170,15 +188,15 @@ export async function runWaterfall(
   }
 
   // ── Same-art reprint cluster shortcut ──────────────────────────────────────
-  // Two+ hash candidates inside the accept radius means the SAME artwork
+  // Two+ hash candidates inside the cluster radius means the SAME artwork
   // exists across printings (Base vs Base 2 vs Celebrations…). Only the
   // collector number separates them; when OCR couldn't read one, Gemini
   // would spend ~5s doing the same job. An instant one-tap confirm is faster
   // and the vendor verifies the printing anyway (prices differ wildly).
   const strongCluster =
     priors.length >= 2 &&
-    priors[0].distance <= T_ACCEPT &&
-    priors[1].distance <= T_ACCEPT;
+    scoreOf(priors[0]) <= CLUSTER_RADIUS &&
+    scoreOf(priors[1]) <= CLUSTER_RADIUS;
   if (strongCluster && !telemetry.ocrParsed) {
     const result = await finish(
       null,
