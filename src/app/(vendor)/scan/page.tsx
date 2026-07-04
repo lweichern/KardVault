@@ -31,6 +31,11 @@ type Condition = Database["public"]["Tables"]["inventory"]["Row"]["condition"];
 type ScanMode = "single" | "quick" | "video";
 type SingleState = "scanning" | "identifying" | "choosing" | "confirmed" | "success";
 
+// Framing-guide size (CSS px). Drives both the overlay and the capture-crop
+// mapping — keep them in sync via these constants. 0.71 ≈ card aspect (63:88).
+const GUIDE_W = 250;
+const GUIDE_H = 352;
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function artifactsToPayload(a: CaptureArtifacts): IdentifyItemPayload {
@@ -137,7 +142,7 @@ export default function ScanPage() {
     const container = cameraContainerRef.current;
     const video = videoRef.current;
     if (!container || !video) return null;
-    return guideRectFromLayout(container, video);
+    return guideRectFromLayout(container, video, GUIDE_W, GUIDE_H);
   }, [videoRef]);
 
   // Consecutive quality-gate failures. Thresholds are device-dependent, so
@@ -470,8 +475,68 @@ export default function ScanPage() {
 
   const showBatchPanel = (mode === "quick" && showResults) || mode === "video";
 
+  // Bottom sheet slides over the full-screen camera when there is content
+  const sheetVisible =
+    (mode === "single" &&
+      (cameraStatus === "error" ||
+        singleState === "identifying" ||
+        singleState === "choosing" ||
+        (singleState === "confirmed" && !!selectedCard && !addModalCard))) ||
+    (mode === "quick" && (identifying || showResults)) ||
+    (mode === "video" && (!isPro || batchResults.length > 0));
+
   return (
-    <div className="fixed inset-0 z-[60] bg-bg-primary flex flex-col">
+    <div ref={cameraContainerRef} className="fixed inset-0 z-[60] bg-black">
+      {/* Full-screen camera */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <canvas ref={canvasRef} className="hidden" />
+
+      {/* Camera error */}
+      {cameraStatus === "error" && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-bg-surface mb-3">
+            <svg
+              className="w-8 h-8 text-text-muted"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M12 18.75H4.5a2.25 2.25 0 0 1-2.25-2.25V9m12.841 9.091L16.5 19.5m-1.409-1.409c.407-.407.659-.97.659-1.591v-9a2.25 2.25 0 0 0-2.25-2.25h-9c-.621 0-1.184.252-1.591.659m12.182 12.182L2.909 5.909M1.5 4.5l1.409 1.409"
+              />
+            </svg>
+          </div>
+          <p className="text-text-secondary text-sm">{cameraError}</p>
+        </div>
+      )}
+
+      {/* Guide frame — centred over the camera */}
+      {(cameraStatus === "streaming" || cameraStatus === "captured") && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="relative" style={{ width: GUIDE_W, height: GUIDE_H }}>
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary-400 rounded-tl-sm" />
+            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary-400 rounded-tr-sm" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-primary-400 rounded-bl-sm" />
+            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary-400 rounded-br-sm" />
+
+            {/* Scan line — single scanning or video live */}
+            {cameraStatus === "streaming" &&
+              ((mode === "single" && singleState === "scanning") || mode === "video") && (
+                <div className="absolute left-2 right-2 h-0.5 bg-linear-to-r from-transparent via-primary-400 to-transparent animate-scan-line" />
+              )}
+          </div>
+        </div>
+      )}
+
       {/* Toast — offset below the notch/Dynamic Island via safe-area inset */}
       {toast && (
         <div
@@ -482,9 +547,9 @@ export default function ScanPage() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header — floating over the camera */}
       <div
-        className="relative z-10 flex items-center justify-between px-4 pb-2"
+        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 pb-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <button
@@ -528,11 +593,7 @@ export default function ScanPage() {
           >
             Video
             {!isPro && (
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                 <path
                   fillRule="evenodd"
                   d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
@@ -547,65 +608,17 @@ export default function ScanPage() {
         <div className="w-9" />
       </div>
 
-      {/* Camera viewfinder */}
-      <div
-        ref={cameraContainerRef}
-        className="relative shrink-0 flex items-center justify-center bg-black"
-        style={{ height: "380px" }}
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <canvas ref={canvasRef} className="hidden" />
-
-        {/* Camera error */}
-        {cameraStatus === "error" && (
-          <div className="relative z-10 text-center px-6">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-bg-surface mx-auto mb-3">
-              <svg
-                className="w-8 h-8 text-text-muted"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M12 18.75H4.5a2.25 2.25 0 0 1-2.25-2.25V9m12.841 9.091L16.5 19.5m-1.409-1.409c.407-.407.659-.97.659-1.591v-9a2.25 2.25 0 0 0-2.25-2.25h-9c-.621 0-1.184.252-1.591.659m12.182 12.182L2.909 5.909M1.5 4.5l1.409 1.409"
-                />
-              </svg>
-            </div>
-            <p className="text-text-secondary text-sm">{cameraError}</p>
-          </div>
-        )}
-
-        {/* Scan frame overlay */}
-        {(cameraStatus === "streaming" || cameraStatus === "captured") && (
-          <div className="relative z-10 w-[220px] h-[310px]">
-            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-primary-400 rounded-tl-sm" />
-            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-primary-400 rounded-tr-sm" />
-            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-primary-400 rounded-bl-sm" />
-            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-primary-400 rounded-br-sm" />
-
-            {/* Scan line — single scanning or video mode live */}
-            {cameraStatus === "streaming" &&
-              ((mode === "single" && singleState === "scanning") || mode === "video") && (
-                <div className="absolute left-2 right-2 h-0.5 bg-linear-to-r from-transparent via-primary-400 to-transparent animate-scan-line" />
-              )}
-          </div>
-        )}
-
-        {/* Hint text */}
-        {cameraStatus === "streaming" &&
-          ((mode === "single" && singleState === "scanning") ||
+      {/* Bottom controls — floating above the home indicator */}
+      {cameraStatus === "streaming" && !sheetVisible && (
+        <div
+          className="absolute left-0 right-0 z-20"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
+        >
+          {/* Hint text */}
+          {((mode === "single" && singleState === "scanning") ||
             (mode === "quick" && !showResults) ||
             mode === "video") && (
-            <p className="absolute bottom-19 left-0 right-0 text-center text-text-muted text-xs z-10">
+            <p className="text-center text-text-primary/80 text-xs mb-4 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
               {mode === "quick"
                 ? `${photos.length} photo${photos.length !== 1 ? "s" : ""} captured`
                 : mode === "video"
@@ -614,108 +627,147 @@ export default function ScanPage() {
             </p>
           )}
 
-        {/* Capture button — single mode */}
-        {mode === "single" && singleState === "scanning" && cameraStatus === "streaming" && (
-          <button
-            onClick={handleSingleCapture}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-15 h-15 rounded-full bg-primary-400 flex items-center justify-center border-4 border-white/30 active:scale-95 transition-transform"
-          >
-            <CameraIcon />
-          </button>
-        )}
-
-        {/* Quick scan capture button + thumbnail strip */}
-        {mode === "quick" && !showResults && cameraStatus === "streaming" && (
-          <>
-            {/* Thumbnails — bottom left */}
-            {photos.length > 0 && (
-              <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1.5">
-                {photos.slice(-3).map((p) => (
-                  <div
-                    key={p.id}
-                    className="relative w-9 h-12.5 rounded overflow-hidden border border-primary-400/60"
-                  >
-                    <img
-                      src={`data:image/jpeg;base64,${p.artifacts.fullBase64}`}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-                {photos.length > 3 && (
-                  <span className="text-text-primary text-xs font-bold">
-                    +{photos.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Shutter button */}
-            <button
-              onClick={handleQuickCapture}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-15 h-15 rounded-full bg-primary-400 flex items-center justify-center border-4 border-white/30 active:scale-95 transition-transform"
-            >
-              <CameraIcon />
-            </button>
-
-            {/* Identify All button */}
-            {photos.length > 0 && (
+          <div className="relative flex items-center justify-center">
+            {/* Single shutter */}
+            {mode === "single" && singleState === "scanning" && (
               <button
-                onClick={handleIdentifyAll}
-                disabled={identifying}
-                className="absolute bottom-4 right-4 z-10 h-10 px-3 rounded-xl bg-bg-surface/90 backdrop-blur-sm text-text-primary text-xs font-medium border border-border-hover disabled:opacity-60"
+                onClick={handleSingleCapture}
+                className="w-16 h-16 rounded-full bg-primary-400 flex items-center justify-center border-4 border-white/30 active:scale-95 transition-transform"
               >
-                {identifying
-                  ? `${identifyProgress}/${photos.length}`
-                  : `Identify All (${photos.length})`}
+                <CameraIcon />
               </button>
             )}
-          </>
-        )}
 
-        {/* Retake button — single identifying / choosing / confirmed */}
-        {mode === "single" &&
-          (singleState === "identifying" ||
-            singleState === "choosing" ||
-            singleState === "confirmed") && (
-            <button
-              onClick={handleSingleRetake}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 text-text-primary text-sm font-medium bg-bg-surface/80 backdrop-blur-sm px-4 py-2 rounded-full"
-            >
-              Retake
-            </button>
-          )}
+            {/* Quick: thumbnails + shutter + identify all */}
+            {mode === "quick" && !showResults && (
+              <>
+                {photos.length > 0 && (
+                  <div className="absolute left-4 flex items-center gap-1.5">
+                    {photos.slice(-3).map((p) => (
+                      <div
+                        key={p.id}
+                        className="relative w-9 h-12.5 rounded overflow-hidden border border-primary-400/60"
+                      >
+                        <img
+                          src={`data:image/jpeg;base64,${p.artifacts.fullBase64}`}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                    {photos.length > 3 && (
+                      <span className="text-text-primary text-xs font-bold">
+                        +{photos.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-        {/* Success overlay */}
-        {mode === "single" && singleState === "success" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
-            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-success/20">
-              <svg
-                className="w-10 h-10 text-success"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-            </div>
+                <button
+                  onClick={handleQuickCapture}
+                  className="w-16 h-16 rounded-full bg-primary-400 flex items-center justify-center border-4 border-white/30 active:scale-95 transition-transform"
+                >
+                  <CameraIcon />
+                </button>
+
+                {photos.length > 0 && (
+                  <button
+                    onClick={handleIdentifyAll}
+                    disabled={identifying}
+                    className="absolute right-4 h-10 px-3 rounded-xl bg-bg-surface/90 backdrop-blur-sm text-text-primary text-xs font-medium border border-border-hover disabled:opacity-60"
+                  >
+                    {identifying
+                      ? `${identifyProgress}/${photos.length}`
+                      : `Identify All (${photos.length})`}
+                  </button>
+                )}
+              </>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Bottom panel */}
-      <div
-        className="flex-1 overflow-y-auto px-4 pt-4"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2rem)" }}
-      >
-        {/* ── SINGLE SCAN BOTTOM PANEL ── */}
-        {mode === "single" && (
-          <>
-            {/* Camera error fallback search */}
-            {cameraStatus === "error" && !selectedCard && (
-              <div className="mb-4">
-                <p className="text-text-secondary text-xs mb-2">Search for a card to add:</p>
+      {/* Success overlay */}
+      {mode === "single" && singleState === "success" && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60">
+          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-success/20">
+            <svg
+              className="w-10 h-10 text-success"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2.5}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet — slides over the camera when there is content */}
+      {sheetVisible && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 z-30 bg-bg-primary rounded-t-2xl border-t border-border-default overflow-y-auto px-4 ${
+            mode === "video" ? "max-h-[35vh]" : "max-h-[65vh]"
+          }`}
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+        >
+          {/* Grabber */}
+          <div className="sticky top-0 bg-bg-primary pt-2.5 pb-3 z-10">
+            <div className="w-9 h-1 rounded-full bg-border-hover mx-auto" />
+          </div>
+
+          {/* ── SINGLE SCAN SHEET ── */}
+          {mode === "single" && (
+            <>
+              {/* Retake row for post-capture states */}
+              {cameraStatus !== "error" &&
+                (singleState === "identifying" ||
+                  singleState === "choosing" ||
+                  singleState === "confirmed") && (
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-text-primary text-sm font-semibold">
+                      {singleState === "choosing" ? "Which card is this?" : "Scan result"}
+                    </p>
+                    <button
+                      onClick={handleSingleRetake}
+                      className="text-primary-200 text-xs font-medium px-3 py-1.5 rounded-full border border-border-default"
+                    >
+                      Retake
+                    </button>
+                  </div>
+                )}
+
+              {/* Camera error fallback search */}
+              {cameraStatus === "error" && !selectedCard && (
+                <div className="mb-4">
+                  <p className="text-text-secondary text-xs mb-2">Search for a card to add:</p>
+                  <SearchDropdown
+                    query={query}
+                    results={results}
+                    searching={searching}
+                    onSearch={search}
+                    onClear={clearSearch}
+                    onSelect={(card) => confirmSingleCard(card, false)}
+                  />
+                </div>
+              )}
+
+              {/* Choosing — Tier 4 confirm UI */}
+              {singleState === "choosing" && singleCandidates.length > 0 && (
+                <CandidatePicker
+                  compact
+                  candidates={singleCandidates}
+                  onSelect={(card) => confirmSingleCard(card, true)}
+                  onSearchInstead={() => {
+                    setSingleCandidates([]);
+                    setSingleState("identifying");
+                  }}
+                />
+              )}
+
+              {/* Identifying — search field */}
+              {singleState === "identifying" && (
                 <SearchDropdown
                   query={query}
                   results={results}
@@ -724,117 +776,90 @@ export default function ScanPage() {
                   onClear={clearSearch}
                   onSelect={(card) => confirmSingleCard(card, false)}
                 />
-              </div>
-            )}
+              )}
 
-            {/* Choosing — Tier 4 confirm UI */}
-            {singleState === "choosing" && singleCandidates.length > 0 && (
-              <CandidatePicker
-                candidates={singleCandidates}
-                onSelect={(card) => confirmSingleCard(card, true)}
-                onSearchInstead={() => {
-                  setSingleCandidates([]);
-                  setSingleState("identifying");
-                }}
-              />
-            )}
-
-            {/* Identifying — search field */}
-            {singleState === "identifying" && (
-              <SearchDropdown
-                query={query}
-                results={results}
-                searching={searching}
-                onSearch={search}
-                onClear={clearSearch}
-                onSelect={(card) => confirmSingleCard(card, false)}
-              />
-            )}
-
-            {/* Confirmed — card preview */}
-            {singleState === "confirmed" && selectedCard && !addModalCard && (
-              <div className="flex items-center gap-3 bg-bg-surface rounded-xl p-3">
-                {selectedCard.image_small ? (
-                  <img
-                    src={selectedCard.image_small}
-                    alt={selectedCard.name}
-                    className="w-14 h-19.5 rounded-lg object-cover bg-bg-surface-2 shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-19.5 rounded-lg bg-bg-surface-2 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-primary font-semibold text-[15px] truncate">
-                    {selectedCard.name}
-                  </p>
-                  <p className="text-text-secondary text-xs">
-                    {selectedCard.set_name} · {selectedCard.number}
-                  </p>
+              {/* Confirmed — card preview */}
+              {singleState === "confirmed" && selectedCard && !addModalCard && (
+                <div className="flex items-center gap-3 bg-bg-surface rounded-xl p-3">
+                  {selectedCard.image_small ? (
+                    <img
+                      src={selectedCard.image_small}
+                      alt={selectedCard.name}
+                      className="w-14 h-19.5 rounded-lg object-cover bg-bg-surface-2 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-19.5 rounded-lg bg-bg-surface-2 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-text-primary font-semibold text-[15px] truncate">
+                      {selectedCard.name}
+                    </p>
+                    <p className="text-text-secondary text-xs">
+                      {selectedCard.set_name} · {selectedCard.number}
+                    </p>
+                  </div>
                 </div>
+              )}
+            </>
+          )}
+
+          {/* ── VIDEO MODE — Pro gate ── */}
+          {mode === "video" && !isPro && (
+            <div className="flex flex-col items-center gap-3 py-4 text-center px-6">
+              <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary-800">
+                <svg
+                  className="w-7 h-7 text-primary-200"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
               </div>
-            )}
-          </>
-        )}
-
-        {/* ── VIDEO MODE — Pro gate ── */}
-        {mode === "video" && !isPro && (
-          <div className="flex flex-col items-center gap-3 pt-8 text-center px-6">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-primary-800">
-              <svg className="w-7 h-7 text-primary-200" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fillRule="evenodd"
-                  d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <p className="text-text-primary text-sm font-semibold">
+                Video auto-scan is a Kad Pro feature
+              </p>
+              <p className="text-text-secondary text-xs">
+                Slide cards through the frame and hear a beep as each one is identified — no
+                tapping, no waiting.
+              </p>
             </div>
-            <p className="text-text-primary text-sm font-semibold">
-              Video auto-scan is a Kad Pro feature
-            </p>
-            <p className="text-text-secondary text-xs">
-              Slide cards through the frame and hear a beep as each one is identified — no
-              tapping, no waiting.
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* ── BATCH RESULTS (quick results / video session list) ── */}
-        {showBatchPanel && (mode !== "video" || isPro) && batchResults.length > 0 && (
-          <BatchResultsPanel
-            results={batchResults}
-            matchedCount={matchedCount}
-            correctionTarget={correctionTarget}
-            onSetCorrectionTarget={setCorrectionTarget}
-            onConfirmCard={handleConfirmBatchCard}
-            onAddAll={handleAddAll}
-            onClear={handleClearBatch}
-            addingBulk={addingBulk}
-            bulkError={bulkError}
-            searchQuery={query}
-            searchResults={results}
-            searching={searching}
-            onSearch={search}
-            onClearSearch={clearSearch}
-          />
-        )}
+          {/* ── BATCH RESULTS (quick results / video session list) ── */}
+          {showBatchPanel && (mode !== "video" || isPro) && batchResults.length > 0 && (
+            <BatchResultsPanel
+              results={batchResults}
+              matchedCount={matchedCount}
+              correctionTarget={correctionTarget}
+              onSetCorrectionTarget={setCorrectionTarget}
+              onConfirmCard={handleConfirmBatchCard}
+              onAddAll={handleAddAll}
+              onClear={handleClearBatch}
+              addingBulk={addingBulk}
+              bulkError={bulkError}
+              searchQuery={query}
+              searchResults={results}
+              searching={searching}
+              onSearch={search}
+              onClearSearch={clearSearch}
+            />
+          )}
 
-        {/* Video mode — empty session hint */}
-        {mode === "video" && isPro && batchResults.length === 0 && (
-          <p className="text-text-muted text-xs text-center pt-8">
-            Captured cards will appear here.
-          </p>
-        )}
-
-        {/* Quick scan — identifying progress */}
-        {mode === "quick" && identifying && (
-          <div className="flex flex-col items-center gap-3 pt-8">
-            <div className="w-12 h-12 rounded-full border-2 border-primary-400 border-t-transparent animate-spin" />
-            <p className="text-text-secondary text-sm">
-              Identifying {identifyProgress} / {photos.length}...
-            </p>
-          </div>
-        )}
-      </div>
+          {/* Quick scan — identifying progress */}
+          {mode === "quick" && identifying && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <div className="w-12 h-12 rounded-full border-2 border-primary-400 border-t-transparent animate-spin" />
+              <p className="text-text-secondary text-sm">
+                Identifying {identifyProgress} / {photos.length}...
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* AddCardModal — single scan */}
       {addModalCard && (
