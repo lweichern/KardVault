@@ -139,11 +139,14 @@ export async function POST(request: NextRequest) {
 
   let eventIds: (string | null)[] = eventRows.map(() => null);
   try {
-    const { data: inserted } = await admin
+    const { data: inserted, error: insertError } = await admin
       .from("scan_events")
       .insert(eventRows)
       .select("id");
-    if (inserted && inserted.length === eventRows.length) {
+    if (insertError) {
+      // e.g. FK violation when the auth user has no vendors row
+      console.error("[scan/identify] scan_events insert failed:", insertError.message);
+    } else if (inserted && inserted.length === eventRows.length) {
       eventIds = inserted.map((r) => r.id);
     }
   } catch (err) {
