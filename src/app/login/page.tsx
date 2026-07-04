@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { AppVersion } from "@/components/app-version";
 
 type Mode = "login" | "signup";
 
@@ -171,7 +172,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="text-text-muted text-[10px] text-center mt-8">v0.1.7</p>
+        <AppVersion className="mt-8" />
       </div>
     </div>
   );

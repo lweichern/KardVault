@@ -3,8 +3,11 @@ import * as path from "path";
 import sharp from "sharp";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import * as fs from "fs";
 import { phash } from "../src/lib/scan/phash";
 import { cropFraction, type RawImage } from "../src/lib/scan/raw-image";
+import { detectCardQuad, blurScore, glareScore } from "../src/lib/scan/detect";
+import { warpPerspective, CARD_W, CARD_H, type Point } from "../src/lib/scan/geometry";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
@@ -14,7 +17,11 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 //  3. send a real catalog card image through /api/scan/identify
 //  4. assert the waterfall identifies it and logs a scan_event
 //
-// Usage: npx tsx scripts/test-scan-e2e.ts [--base-url https://kard-vault.vercel.app] [--card base1-4]
+// Usage:
+//   npx tsx scripts/test-scan-e2e.ts [--base-url URL] [--card base1-4]
+//   npx tsx scripts/test-scan-e2e.ts --image ./charizard.png [--expect base1-4]
+// With --image, the REAL photo runs the same client pipeline as the phone
+// (full-frame detection -> warp -> gates -> strip crop -> pHashes).
 
 const args = process.argv.slice(2);
 function getArg(flag: string, fallback: string): string {
@@ -23,6 +30,8 @@ function getArg(flag: string, fallback: string): string {
 }
 const BASE_URL = getArg("--base-url", "https://kard-vault.vercel.app").replace(/\/$/, "");
 const CARD_ID = getArg("--card", "base1-4"); // Base Set Charizard
+const IMAGE_PATH = getArg("--image", "");
+const EXPECT_ID = getArg("--expect", CARD_ID);
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -41,7 +50,13 @@ async function main() {
   });
   if (createErr || !created.user) throw new Error(`createUser: ${createErr?.message}`);
   const userId = created.user.id;
-  console.log(`1. created test user ${email}`);
+  await admin.from("vendors").insert({
+    id: userId,
+    display_name: "E2E Scan Test",
+    whatsapp_number: "+60000000000",
+    slug: `e2e-test-${Date.now()}`,
+  });
+  console.log(`1. created test user + vendor row (${email})`);
 
   try {
     const anon = createClient(SUPABASE_URL, ANON_KEY);
@@ -70,41 +85,69 @@ async function main() {
     if (!cookieHeader) throw new Error("ssr client produced no cookies");
     console.log(`3. built session cookies (${jar.size} cookie(s))`);
 
-    // ── 3. Build scan payload from the real catalog image ────────────────────
-    const { data: cardRow } = await admin
-      .from("cards")
-      .select("id, name, image_small, image_large")
-      .eq("id", CARD_ID)
-      .single();
-    if (!cardRow?.image_small) throw new Error(`card ${CARD_ID} has no image`);
+    // ── 3. Build scan payload ─────────────────────────────────────────────────
+    let buf: Buffer;
+    let label: string;
+    if (IMAGE_PATH) {
+      buf = fs.readFileSync(IMAGE_PATH);
+      label = IMAGE_PATH;
+    } else {
+      const { data: cardRow } = await admin
+        .from("cards")
+        .select("id, name, image_small")
+        .eq("id", CARD_ID)
+        .single();
+      if (!cardRow?.image_small) throw new Error(`card ${CARD_ID} has no image`);
+      const imgRes = await fetch(cardRow.image_small);
+      buf = Buffer.from(await imgRes.arrayBuffer());
+      label = `catalog:${CARD_ID}`;
+    }
 
-    const imgRes = await fetch(cardRow.image_small);
-    const buf = Buffer.from(await imgRes.arrayBuffer());
     const { data: rawData, info } = await sharp(buf)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const raw: RawImage = {
+    let raw: RawImage = {
       width: info.width,
       height: info.height,
       data: new Uint8ClampedArray(rawData.buffer, rawData.byteOffset, rawData.byteLength),
     };
+
+    if (IMAGE_PATH) {
+      // Replicate the phone's client pipeline: full-frame detection -> warp
+      const quad = detectCardQuad(raw);
+      const corners: [Point, Point, Point, Point] = quad?.corners ?? [
+        { x: 0, y: 0 },
+        { x: raw.width - 1, y: 0 },
+        { x: raw.width - 1, y: raw.height - 1 },
+        { x: 0, y: raw.height - 1 },
+      ];
+      console.log(
+        `   detection: ${quad ? `quad found (score ${quad.score.toFixed(2)})` : "none — using full image"}`
+      );
+      raw = warpPerspective(raw, corners, CARD_W, CARD_H);
+      console.log(
+        `   gates: blur=${blurScore(raw).toFixed(0)} glare(strip)=${glareScore(
+          cropFraction(raw, 0, 0.88, 1, 0.12)
+        ).toFixed(3)}`
+      );
+    }
+
     const art = cropFraction(raw, 0.09, 0.11, 0.82, 0.36);
+    const strip = cropFraction(raw, 0, 0.88, 1, 0.12);
     const hashFull = phash(raw);
     const hashArt = phash(art);
 
-    const fullJpeg = await sharp(buf).jpeg({ quality: 85 }).toBuffer();
-    const stripJpeg = await sharp(buf)
-      .extract({
-        left: 0,
-        top: Math.round(info.height * 0.88),
-        width: info.width,
-        height: Math.round(info.height * 0.12),
+    const toJpeg = (img: RawImage, scale = 1) =>
+      sharp(Buffer.from(img.data.buffer, img.data.byteOffset, img.data.byteLength), {
+        raw: { width: img.width, height: img.height, channels: 4 },
       })
-      .resize(info.width * 2)
-      .jpeg({ quality: 85 })
-      .toBuffer();
-    console.log(`4. payload ready for "${cardRow.name}" (${CARD_ID}), hashFull=${hashFull}`);
+        .resize(Math.round(img.width * scale))
+        .jpeg({ quality: 85 })
+        .toBuffer();
+    const fullJpeg = await toJpeg(raw);
+    const stripJpeg = await toJpeg(strip, 2);
+    console.log(`4. payload ready for ${label}, hashFull=${hashFull}`);
 
     // ── 4. Fire at the deployed waterfall ────────────────────────────────────
     const res = await fetch(`${BASE_URL}/api/scan/identify`, {
@@ -150,13 +193,14 @@ async function main() {
       console.warn("6. no scanEventId — telemetry insert failed server-side");
     }
 
-    const pass = r?.card?.id === CARD_ID;
+    const pass = r?.card?.id === EXPECT_ID;
     console.log("");
-    console.log(pass ? `PASS — deployed waterfall identified ${CARD_ID}` : "FAIL — wrong/no match");
+    console.log(pass ? `PASS — deployed waterfall identified ${EXPECT_ID}` : `FAIL — expected ${EXPECT_ID}`);
     if (!pass) process.exitCode = 1;
   } finally {
+    await admin.from("vendors").delete().eq("id", userId);
     await admin.auth.admin.deleteUser(userId);
-    console.log("7. cleaned up test user");
+    console.log("7. cleaned up test user + vendor");
   }
 }
 

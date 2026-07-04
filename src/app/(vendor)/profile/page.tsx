@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
+import { AppVersion } from "@/components/app-version";
 import { useVendor } from "@/hooks/use-vendor";
 
 export default function ProfilePage() {
@@ -274,6 +275,8 @@ export default function ProfilePage() {
       >
         Sign out
       </button>
+
+      <AppVersion className="mt-6" />
     </div>
   );
 }
