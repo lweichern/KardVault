@@ -268,6 +268,51 @@ describe("Tier 3 — structured extraction", () => {
   });
 });
 
+// ── Reprint-cluster shortcut ────────────────────────────────────────────────
+
+describe("same-art reprint cluster shortcut", () => {
+  it("skips Gemini and returns candidates instantly when hash finds a tight cluster and OCR is unavailable", async () => {
+    const extract = vi.fn();
+    const deps = makeDeps({
+      hashSearch: async () => hashHits([CHARIZARD.id, 8, 6], [MEW.id, 10, 8]),
+      vision: { name: "fake-gemini", extract },
+    });
+    const result = await runWaterfall(input, deps);
+    expect(extract).not.toHaveBeenCalled();
+    expect(result.telemetry.geminiCalled).toBe(false);
+    expect(result.autoAccepted).toBe(false);
+    expect(result.tierResolved).toBe(4);
+    expect(result.candidates.map((c) => c.id)).toEqual([CHARIZARD.id, MEW.id]);
+    expect(result.card?.id).toBe(CHARIZARD.id);
+  });
+
+  it("still calls Gemini when the hash match is weak (no cluster)", async () => {
+    const extract = vi.fn().mockResolvedValue(baseExtraction);
+    const deps = makeDeps({
+      hashSearch: async () => hashHits([CHARIZARD.id, 20, 18], [MEW.id, 25, 22]),
+      vision: { name: "fake-gemini", extract },
+    });
+    const result = await runWaterfall(input, deps);
+    expect(extract).toHaveBeenCalled();
+    expect(result.telemetry.geminiCalled).toBe(true);
+  });
+
+  it("lets OCR resolve the cluster instead when it parses an identifier", async () => {
+    const extract = vi.fn();
+    const deps = makeDeps({
+      hashSearch: async () => hashHits([CHARIZARD.id, 8, 6], [MEW.id, 10, 8]),
+      ocr: { name: "fake", readText: async () => "125/197" },
+      catalog: fakeCatalog({ lookup: async () => [CHARIZARD, MEW] }),
+      vision: { name: "fake-gemini", extract },
+    });
+    const result = await runWaterfall(input, deps);
+    // Tier 1 top + OCR top agree → auto-accept at Tier 2, no Gemini
+    expect(result.autoAccepted).toBe(true);
+    expect(result.tierResolved).toBe(2);
+    expect(extract).not.toHaveBeenCalled();
+  });
+});
+
 // ── Candidate assembly ──────────────────────────────────────────────────────
 
 describe("candidate assembly", () => {

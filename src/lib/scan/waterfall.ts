@@ -169,6 +169,27 @@ export async function runWaterfall(
     }
   }
 
+  // ── Same-art reprint cluster shortcut ──────────────────────────────────────
+  // Two+ hash candidates inside the accept radius means the SAME artwork
+  // exists across printings (Base vs Base 2 vs Celebrations…). Only the
+  // collector number separates them; when OCR couldn't read one, Gemini
+  // would spend ~5s doing the same job. An instant one-tap confirm is faster
+  // and the vendor verifies the printing anyway (prices differ wildly).
+  const strongCluster =
+    priors.length >= 2 &&
+    priors[0].distance <= T_ACCEPT &&
+    priors[1].distance <= T_ACCEPT;
+  if (strongCluster && !telemetry.ocrParsed) {
+    const result = await finish(
+      null,
+      [...ocrMatches.map((c) => c.id), ...priorIds],
+      false,
+      4,
+      known
+    );
+    return { ...result, card: result.candidates[0] ?? null };
+  }
+
   // ── Tier 3: structured extraction (only when cheap tiers can't agree) ─────
   let fuzzyMatches: Card[] = [];
   if (deps.vision) {
