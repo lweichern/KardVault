@@ -708,7 +708,7 @@ export default function ScanPage() {
       {sheetVisible && (
         <div
           className={`absolute bottom-0 left-0 right-0 z-30 bg-bg-primary rounded-t-2xl border-t border-border-default overflow-y-auto px-4 ${
-            mode === "video" ? "max-h-[35vh]" : "max-h-[65vh]"
+            mode === "video" ? "max-h-[35vh]" : "max-h-[80vh]"
           }`}
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
         >
@@ -954,7 +954,7 @@ function BatchResultsPanel({
           const isExpanded = correctionTarget === r.id;
 
           return (
-            <div key={r.id} className="bg-bg-surface rounded-xl overflow-hidden">
+            <div key={r.id} className="bg-bg-surface rounded-xl">
               <div className="flex items-center gap-3 p-3">
                 {/* Thumbnail */}
                 <div className="w-9 h-12.5 rounded overflow-hidden bg-bg-surface-2 shrink-0">
@@ -1116,6 +1116,13 @@ function SearchDropdown({
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search cards..."
           autoFocus
+          onFocus={(e) =>
+            // Keep the input + results visible above the on-screen keyboard
+            setTimeout(
+              () => e.target.scrollIntoView({ block: "start", behavior: "smooth" }),
+              250
+            )
+          }
           className="w-full bg-bg-surface-2 text-text-primary placeholder:text-text-muted rounded-xl pl-10 pr-10 py-3 text-sm border border-border-default focus:border-border-focus focus:outline-none"
         />
         {query && (
@@ -1136,8 +1143,11 @@ function SearchDropdown({
         )}
       </div>
 
+      {/* Results render in normal flow — the bottom sheet is the single scroll
+          container. An absolute dropdown gets clipped by overflow-hidden rows
+          and can't scroll inside the sheet. */}
       {(results.length > 0 || (searching && query.length >= 2)) && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-bg-surface border border-border-default rounded-xl shadow-lg max-h-64 overflow-y-auto">
+        <div className="mt-1 bg-bg-surface border border-border-default rounded-xl shadow-lg">
           {searching && results.length === 0 && (
             <div className="px-4 py-3 text-text-muted text-sm">Searching...</div>
           )}
