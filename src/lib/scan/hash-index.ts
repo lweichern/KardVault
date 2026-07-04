@@ -99,7 +99,7 @@ export function nearestAmong(
   hashArt: string | null,
   k: number
 ): HashHit[] {
-  const hits: HashHit[] = [];
+  const hits: Array<HashHit & { score: number }> = [];
   for (const e of entries) {
     const distance = hammingHex(hashFull, e.hashFull);
     const artDistance =
