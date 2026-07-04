@@ -113,39 +113,58 @@ export function processCapture(
   guideRect: GuideRect,
   options: CaptureOptions = {}
 ): CaptureOutcome {
-  // 1. Crop to the guide region plus margin — detection never sees the
-  //    cluttered full frame.
-  const mx = guideRect.w * GUIDE_MARGIN;
-  const my = guideRect.h * GUIDE_MARGIN;
-  const regionX = Math.max(0, guideRect.x - mx);
-  const regionY = Math.max(0, guideRect.y - my);
-  const region = cropRaw(
-    frame,
-    regionX,
-    regionY,
-    guideRect.w + 2 * mx,
-    guideRect.h + 2 * my
-  );
+  // 1. Detect the card on the FULL frame first — vendors often fill the
+  //    screen with the card rather than fitting it inside the guide, and a
+  //    guide-only crop would then capture half a card.
+  let source: RawImage = frame;
+  let corners: [Point, Point, Point, Point] | null = null;
+  let blurRegion: RawImage = frame;
+  let detected = false;
 
-  // 2. Detect the card boundary; fall back to the guide rect inside the region.
-  const quad = detectCardQuad(region);
-  const fallback: [Point, Point, Point, Point] = [
-    { x: guideRect.x - regionX, y: guideRect.y - regionY },
-    { x: guideRect.x - regionX + guideRect.w, y: guideRect.y - regionY },
-    { x: guideRect.x - regionX + guideRect.w, y: guideRect.y - regionY + guideRect.h },
-    { x: guideRect.x - regionX, y: guideRect.y - regionY + guideRect.h },
-  ];
-  const corners = quad?.corners ?? fallback;
+  const fullQuad = detectCardQuad(frame);
+  if (fullQuad) {
+    detected = true;
+    corners = fullQuad.corners;
+    const xs = corners.map((c) => c.x);
+    const ys = corners.map((c) => c.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    blurRegion = cropRaw(frame, minX, minY, Math.max(...xs) - minX, Math.max(...ys) - minY);
+  } else {
+    // 2. Fall back to the guide region plus margin; if detection fails there
+    //    too, the guide IS the card (the vendor aligned it).
+    const mx = guideRect.w * GUIDE_MARGIN;
+    const my = guideRect.h * GUIDE_MARGIN;
+    const regionX = Math.max(0, guideRect.x - mx);
+    const regionY = Math.max(0, guideRect.y - my);
+    const region = cropRaw(
+      frame,
+      regionX,
+      regionY,
+      guideRect.w + 2 * mx,
+      guideRect.h + 2 * my
+    );
+    const regionQuad = detectCardQuad(region);
+    detected = !!regionQuad;
+    source = region;
+    blurRegion = region;
+    corners = regionQuad?.corners ?? [
+      { x: guideRect.x - regionX, y: guideRect.y - regionY },
+      { x: guideRect.x - regionX + guideRect.w, y: guideRect.y - regionY },
+      { x: guideRect.x - regionX + guideRect.w, y: guideRect.y - regionY + guideRect.h },
+      { x: guideRect.x - regionX, y: guideRect.y - regionY + guideRect.h },
+    ];
+  }
 
-  // 3. Blur gate on the NATIVE-resolution region crop. The perspective warp's
+  // 3. Blur gate on the NATIVE-resolution card area. The perspective warp's
   //    bilinear resampling smooths pixels and crushes Laplacian variance, so
   //    gating on the warped crop rejects perfectly sharp captures.
-  if (!options.skipQualityGates && blurScore(region) < BLUR_MIN) {
+  if (!options.skipQualityGates && blurScore(blurRegion) < BLUR_MIN) {
     return { ok: false, reason: "Hold steady — the photo looks blurry." };
   }
 
   // 4. Warp to the canonical flat card.
-  const warped = warpPerspective(region, corners, CARD_W, CARD_H);
+  const warped = warpPerspective(source, corners, CARD_W, CARD_H);
 
   // 5. Identifier strip: crop per game layout, glare-gate, zoom for OCR.
   const regions = getCatalogProvider("pokemon").identifierRegions();
@@ -168,7 +187,7 @@ export function processCapture(
       stripBase64: rawToJpegBase64(strip, STRIP_SCALE),
       hashFull,
       hashArt,
-      detected: !!quad,
+      detected,
     },
   };
 }

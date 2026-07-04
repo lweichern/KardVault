@@ -22,6 +22,16 @@ function getAdminClient() {
 }
 
 export async function POST(request: NextRequest) {
+  // Fail loudly on missing server config — a silent crash here surfaces as
+  // "Not identified" on the phone, which is undebuggable in the field.
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[scan/identify] SUPABASE_SERVICE_ROLE_KEY is not set");
+    return NextResponse.json(
+      { error: "Server misconfigured: SUPABASE_SERVICE_ROLE_KEY is not set" },
+      { status: 500 }
+    );
+  }
+
   // 1. Authenticate using Supabase SSR
   const cookieStore = await cookies();
   const supabase = createServerClient(

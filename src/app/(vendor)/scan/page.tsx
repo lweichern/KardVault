@@ -57,7 +57,16 @@ async function identify(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items, mode, sessionId }),
   });
-  if (!res.ok) throw new Error(`identify failed: ${res.status}`);
+  if (!res.ok) {
+    let message = `Identification failed (HTTP ${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // non-JSON error body — keep the status message
+    }
+    throw new Error(message);
+  }
   const data: { results: IdentifyResultItem[] } = await res.json();
   return data.results ?? [];
 }
@@ -230,8 +239,8 @@ export default function ScanPage() {
         showToast("Couldn't identify — search for the card");
         setSingleState("identifying");
       }
-    } catch {
-      showToast("Identification failed. Search manually.");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Identification failed. Search manually.");
       setSingleState("identifying");
     }
   }, [captureArtifacts]);
@@ -318,13 +327,15 @@ export default function ScanPage() {
             overrideCard: null,
           });
         });
-      } catch {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Identification failed";
+        showToast(message);
         batch.forEach((photo) => {
           allResults.push({
             id: photo.id,
             thumbBase64: photo.artifacts.fullBase64,
             result: null,
-            error: "Identification failed",
+            error: message,
             overrideCard: null,
           });
         });
@@ -982,6 +993,11 @@ function BatchResultsPanel({
                         {candidates[0].name}?
                       </p>
                       <p className="text-warning text-xs">Tap to confirm</p>
+                    </>
+                  ) : r.error ? (
+                    <>
+                      <p className="text-danger text-sm truncate">{r.error}</p>
+                      <p className="text-text-muted text-xs">Tap to search</p>
                     </>
                   ) : (
                     <>
