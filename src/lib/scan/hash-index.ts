@@ -29,21 +29,37 @@ async function fetchAllHashes(game: string): Promise<HashEntry[]> {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  const entries: HashEntry[] = [];
   const PAGE = 1000;
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db
-      .from("card_hashes")
-      .select("card_id, hash_full, hash_art")
-      .eq("game", game)
-      .range(from, from + PAGE - 1);
-    if (error) throw error;
-    for (const row of data ?? []) {
-      entries.push({ cardId: row.card_id, hashFull: row.hash_full, hashArt: row.hash_art });
-    }
-    if (!data || data.length < PAGE) break;
-  }
-  return entries;
+
+  // ~20K rows = ~21 pages. Fetch them in parallel — a sequential loop adds
+  // seconds to every serverless cold start (the first scan pays for it).
+  const { count, error: countError } = await db
+    .from("card_hashes")
+    .select("*", { count: "exact", head: true })
+    .eq("game", game);
+  if (countError) throw countError;
+  const total = count ?? 0;
+  if (total === 0) return [];
+
+  const pageStarts = Array.from({ length: Math.ceil(total / PAGE) }, (_, i) => i * PAGE);
+  const pages = await Promise.all(
+    pageStarts.map(async (from) => {
+      const { data, error } = await db
+        .from("card_hashes")
+        .select("card_id, hash_full, hash_art")
+        .eq("game", game)
+        .order("card_id")
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      return data ?? [];
+    })
+  );
+
+  return pages.flat().map((row) => ({
+    cardId: row.card_id,
+    hashFull: row.hash_full,
+    hashArt: row.hash_art,
+  }));
 }
 
 async function getEntries(game: string): Promise<HashEntry[]> {

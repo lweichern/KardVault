@@ -13,11 +13,14 @@ import type { OcrProvider } from "@/lib/ocr";
 import type { VisionProvider } from "@/lib/vision/types";
 import type { HashHit } from "./hash-index";
 
-// Spec §2 Tier 1 starting thresholds (64-bit pHash) — tune via scan_events.
-export const T_ACCEPT = 10;
+// Tier 1 thresholds (64-bit pHash) — tuned via scan_events telemetry.
+// Real phone captures of the correct card score distance 10–14 (spec's
+// starting value of 10 was calibrated on clean catalog images and rejected
+// true matches); the margin rule still guards against same-art reprints.
+export const T_ACCEPT = 14;
 export const T_MARGIN = 6;
 /** Art-hash agreement slack: art crops tolerate a little more noise. */
-export const T_ART_ACCEPT = 14;
+export const T_ART_ACCEPT = 18;
 
 const PRIOR_K = 5;
 const MAX_CANDIDATES = 3;
