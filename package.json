@@ -10,6 +10,7 @@
     "seed:cards": "tsx scripts/seed-cards.ts",
     "seed:cards:set": "tsx scripts/seed-cards.ts --set",
     "hash:catalog": "tsx scripts/hash-catalog.ts",
+    "sync:prices": "tsx scripts/sync-tcgcsv.ts",
     "cap:sync": "npx cap sync ios",
     "cap:open": "npx cap open ios",
     "cap:build": "npx cap sync ios && npx cap open ios",

@@ -545,6 +545,134 @@ export type Database = {
           },
         ];
       };
+      tcg_groups: {
+        Row: {
+          group_id: number;
+          name: string;
+          abbreviation: string | null;
+          is_supplemental: boolean;
+          published_on: string | null;
+          category_id: number;
+          updated_at: string;
+        };
+        Insert: {
+          group_id: number;
+          name: string;
+          abbreviation?: string | null;
+          is_supplemental?: boolean;
+          published_on?: string | null;
+          category_id?: number;
+          updated_at?: string;
+        };
+        Update: {
+          group_id?: number;
+          name?: string;
+          abbreviation?: string | null;
+          is_supplemental?: boolean;
+          published_on?: string | null;
+          category_id?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      tcg_products: {
+        Row: {
+          product_id: number;
+          group_id: number;
+          name: string;
+          clean_name: string | null;
+          image_url: string | null;
+          url: string | null;
+          card_number: string | null;
+          rarity: string | null;
+          is_sealed: boolean;
+          card_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          product_id: number;
+          group_id: number;
+          name: string;
+          clean_name?: string | null;
+          image_url?: string | null;
+          url?: string | null;
+          card_number?: string | null;
+          rarity?: string | null;
+          is_sealed?: boolean;
+          card_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          product_id?: number;
+          group_id?: number;
+          name?: string;
+          clean_name?: string | null;
+          image_url?: string | null;
+          url?: string | null;
+          card_number?: string | null;
+          rarity?: string | null;
+          is_sealed?: boolean;
+          card_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tcg_products_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "tcg_groups";
+            referencedColumns: ["group_id"];
+          },
+          {
+            foreignKeyName: "tcg_products_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tcg_prices: {
+        Row: {
+          product_id: number;
+          sub_type_name: string;
+          market_price: number | null;
+          low_price: number | null;
+          mid_price: number | null;
+          high_price: number | null;
+          direct_low_price: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          product_id: number;
+          sub_type_name?: string;
+          market_price?: number | null;
+          low_price?: number | null;
+          mid_price?: number | null;
+          high_price?: number | null;
+          direct_low_price?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          product_id?: number;
+          sub_type_name?: string;
+          market_price?: number | null;
+          low_price?: number | null;
+          mid_price?: number | null;
+          high_price?: number | null;
+          direct_low_price?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tcg_prices_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "tcg_products";
+            referencedColumns: ["product_id"];
+          },
+        ];
+      };
       events: {
         Row: {
           id: string;
