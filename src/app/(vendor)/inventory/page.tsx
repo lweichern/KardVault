@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useInventory, type InventoryItem } from "@/hooks/use-inventory";
+import { useMarketPrices, type MarketPrice } from "@/hooks/use-market-prices";
 import { useVendor } from "@/hooks/use-vendor";
 import { CardSearch } from "@/components/card-search";
 import { AddCardModal } from "@/components/add-card-modal";
@@ -23,6 +24,7 @@ export default function InventoryPage() {
     totalCards,
   } = useInventory(user?.id);
 
+  const { prices: marketPrices } = useMarketPrices(items.map((i) => i.card_id));
   const [addCard, setAddCard] = useState<Card | null>(null);
   const [sellItem, setSellItem] = useState<InventoryItem | null>(null);
   const [filter, setFilter] = useState("");
@@ -234,6 +236,7 @@ export default function InventoryPage() {
         <div className="space-y-1.5">
           {filtered.map((item) => (
             <InventoryListCard
+              market={item.card_id ? marketPrices[item.card_id] : undefined}
               key={item.id}
               item={item}
               onTap={() => setSellItem(item)}
@@ -244,6 +247,7 @@ export default function InventoryPage() {
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((item) => (
             <InventoryGridCard
+              market={item.card_id ? marketPrices[item.card_id] : undefined}
               key={item.id}
               item={item}
               onTap={() => setSellItem(item)}
@@ -271,6 +275,38 @@ export default function InventoryPage() {
   );
 }
 
+// ─── Market price + delta vs asking ────────────────────────
+// Brand rule: the price number stays neutral; only the delta arrow is
+// green (asking below market) or red (asking above market).
+
+function MarketDelta({
+  askingRm,
+  market,
+  compact = false,
+}: {
+  askingRm: number | null;
+  market: MarketPrice;
+  compact?: boolean;
+}) {
+  const deltaPct =
+    askingRm != null && market.myr > 0
+      ? ((askingRm - market.myr) / market.myr) * 100
+      : null;
+  return (
+    <p className={`text-text-muted ${compact ? "text-[10px]" : "text-[11px]"}`}>
+      Mkt RM{" "}
+      {market.myr.toLocaleString("en", { maximumFractionDigits: market.myr >= 100 ? 0 : 2 })}
+      {deltaPct != null && Math.abs(deltaPct) >= 1 && (
+        <span className={deltaPct > 0 ? "text-danger" : "text-success"}>
+          {" "}
+          {deltaPct > 0 ? "▲" : "▼"}
+          {Math.abs(deltaPct).toFixed(0)}%
+        </span>
+      )}
+    </p>
+  );
+}
+
 // ─── Grading Badge ─────────────────────────────────────────
 
 function GradingBadge({ item }: { item: InventoryItem }) {
@@ -286,9 +322,11 @@ function GradingBadge({ item }: { item: InventoryItem }) {
 
 function InventoryGridCard({
   item,
+  market,
   onTap,
 }: {
   item: InventoryItem;
+  market?: MarketPrice;
   onTap: () => void;
 }) {
   const name = item.card?.name ?? item.manual_card_name ?? "Unknown";
@@ -356,6 +394,9 @@ function InventoryGridCard({
           ) : (
             <p className="text-text-muted text-[13px]">Price TBD</p>
           )}
+          {market && (
+            <MarketDelta askingRm={priceRm} market={market} compact />
+          )}
         </div>
       </div>
     </button>
@@ -366,9 +407,11 @@ function InventoryGridCard({
 
 function InventoryListCard({
   item,
+  market,
   onTap,
 }: {
   item: InventoryItem;
+  market?: MarketPrice;
   onTap: () => void;
 }) {
   const name = item.card?.name ?? item.manual_card_name ?? "Unknown";
@@ -436,6 +479,7 @@ function InventoryListCard({
         ) : (
           <p className="text-text-muted text-xs">TBD</p>
         )}
+        {market && <MarketDelta askingRm={priceRm} market={market} />}
       </div>
     </button>
   );

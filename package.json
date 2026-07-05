@@ -16,7 +16,8 @@
     "cap:build": "npx cap sync ios && npx cap open ios",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "map:products": "tsx scripts/map-tcg-products.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

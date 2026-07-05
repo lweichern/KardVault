@@ -40,7 +40,12 @@ function mapSetToRow(set: RawSet) {
   };
 }
 
-function mapCardToRow(card: RawCard) {
+function mapCardToRow(card: RawCard, setById?: Map<string, RawSet>) {
+  // Per-set data files omit the `set` object — derive the set from the card
+  // id, which is always "{setId}-{number}", and enrich from the sets list.
+  const derivedSetId =
+    card.set?.id ?? (card.id.includes("-") ? card.id.slice(0, card.id.indexOf("-")) : null);
+  const set = derivedSetId ? setById?.get(derivedSetId) : undefined;
   return {
     id: card.id,
     name: card.name,
@@ -50,9 +55,9 @@ function mapCardToRow(card: RawCard) {
     types: card.types ?? null,
     evolves_from: card.evolvesFrom ?? null,
     evolves_to: card.evolvesTo ?? null,
-    set_id: card.set?.id ?? null,
-    set_name: card.set?.name ?? "",
-    set_series: card.set?.series ?? null,
+    set_id: derivedSetId,
+    set_name: card.set?.name ?? set?.name ?? "",
+    set_series: card.set?.series ?? set?.series ?? null,
     number: card.number,
     rarity: card.rarity ?? null,
     artist: card.artist ?? null,
@@ -158,7 +163,8 @@ export async function seedCards(options: SeedOptions = {}): Promise<SeedResult> 
 
     onProgress?.(`${rawCards.length} card(s) fetched`);
 
-    const cardRows = rawCards.map(mapCardToRow);
+    const setById = new Map(sets.map((s) => [s.id, s]));
+    const cardRows = rawCards.map((c) => mapCardToRow(c, setById));
     const cardsResult = await upsertBatch(supabase, "cards", cardRows, onProgress);
     errors.push(...cardsResult.errors);
     cardsUpserted = cardsResult.upserted;
